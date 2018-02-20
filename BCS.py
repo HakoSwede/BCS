@@ -37,13 +37,13 @@ if __name__ == '__main__':
 
     # NON REBALANCED PORTFOLIO
     cum_returns_df = (returns_df+1).cumprod()
-    non_rebalance_df = (cum_returns_df * STARTING_CASH) * initial_weights.values[0]
-    non_rebalance_df_alloc = (non_rebalance_df.div(non_rebalance_df.sum(axis=1), axis=0))
-    non_rebalance_df_returns = non_rebalance_df.sum(axis=1).pct_change(1)
+    buy_and_hold_df = (cum_returns_df * STARTING_CASH) * initial_weights.values[0]
+    buy_and_hold_df_alloc = (buy_and_hold_df.div(buy_and_hold_df.sum(axis=1), axis=0))
+    buy_and_hold_df_returns = buy_and_hold_df.sum(axis=1).pct_change(1)
 
     # REBALANCED PORTFOLIO
-    rebalance_df = non_rebalance_df.copy()
-    rebalance_df_alloc = non_rebalance_df_alloc.copy()
+    rebalance_df = buy_and_hold_df.copy()
+    rebalance_df_alloc = buy_and_hold_df_alloc.copy()
 
     for date in dates[1:]:
         if minkowski(rebalance_df_alloc.loc[date]) > ALLOWED_DRIFT:
@@ -57,12 +57,11 @@ if __name__ == '__main__':
     # MAKE AND SAVE PLOTS
 
     # DAILY RETURNS
-    non_rebalance_df_returns.plot(
-        figsize=(12,6),
-        title='Daily returns of non-rebalanced portfolio',
+    buy_and_hold_df_returns.plot(
+        figsize=(12, 6),
+        title='Daily returns of buy-and-hold portfolio',
         label='Daily returns')
-    plt.legend(bbox_to_anchor=(1, 1))
-    plt.savefig('non_rebalance_daily_returns.png')
+    plt.savefig('buy_and_hold_daily_returns.png')
     plt.gcf().clear()
     plt.close()
 
@@ -71,20 +70,18 @@ if __name__ == '__main__':
         title='Daily returns of rebalanced portfolio',
         label='Daily returns'
     )
-    plt.legend(bbox_to_anchor=(1, 1))
     plt.savefig('rebalance_daily_returns.png')
     plt.gcf().clear()
     plt.close()
 
     # WEIGHT OF ASSETS
-    non_rebalance_df_alloc.plot(
+    buy_and_hold_df_alloc.plot(
         figsize=(12, 6),
-        title='Weight of portfolio assets of non-rebalanced portfolio',
+        title='Weight of portfolio assets of buy-and-hold portfolio',
         kind='area',
         ylim=(0, 1)
     )
-    plt.legend(bbox_to_anchor=(1, 1))
-    plt.savefig('non_rebalance_weight')
+    plt.savefig('buy_and_hold_weight')
     plt.gcf().clear()
     plt.close()
 
@@ -94,19 +91,17 @@ if __name__ == '__main__':
         kind='area',
         ylim=(0, 1)
     )
-    plt.legend(bbox_to_anchor=(1, 1))
     plt.savefig('rebalance_weight')
     plt.gcf().clear()
     plt.close()
 
     # PORTFOLIO RETURNS
-    non_rebalance_df.sum(axis=1).plot(
+    buy_and_hold_df.sum(axis=1).plot(
         figsize=(12, 6),
         title='Value of portfolio',
         label='Value of portfolio'
     )
-    plt.legend(bbox_to_anchor=(1, 1))
-    plt.savefig('non_rebalance_value')
+    plt.savefig('buy_and_hold_value')
     plt.gcf().clear()
     plt.close()
 
@@ -115,7 +110,6 @@ if __name__ == '__main__':
         title='Value of portfolio',
         label='Value of portfolio'
     )
-    plt.legend(bbox_to_anchor=(1, 1))
     plt.savefig('rebalance_value')
     plt.gcf().clear()
     plt.close()
