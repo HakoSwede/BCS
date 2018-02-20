@@ -91,7 +91,7 @@ if __name__ == '__main__':
         if within_tolerance(target_weights.values, rebalance_df_alloc.shift(1).loc[date].values, MAX_DRIFT):
             rebalance_df.loc[date] = rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])
         else:
-            rebalance_df.loc[date] = target_weights * sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date]))
+            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date] * (1 + returns_df.loc[date])) * target_weights
         rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum()))
 
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     )
     axes_alloc[0].set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig('asset_allocations.png')
+    plt.savefig('asset_allocations.png', dpi=300)
     plt.gcf().clear()
     plt.close()
 
