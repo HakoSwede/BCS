@@ -9,12 +9,16 @@ def minkowski_distance(arr_1, arr_2, p):
     return sum(abs(arr_1 - arr_2)**p)**(1/p)
 
 
+def within_tolerance(target, current, drift):
+    return minkowski_distance(target, current, MINKOWSKI_P) < drift
+
+
 if __name__ == '__main__':
     sns.set()
     sns.set_palette(sns.color_palette('Blues_r', 8))
 
     STARTING_CASH = 100000
-    ALLOWED_DRIFT = 0.05
+    MAX_DRIFT = 0.05
     MINKOWSKI_P = 2
     RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
 
@@ -35,8 +39,8 @@ if __name__ == '__main__':
         p=MINKOWSKI_P)
 
     # NON REBALANCED PORTFOLIO
-    cum_returns_df = (returns_df+1).cumprod()
-    buy_and_hold_df = (cum_returns_df * STARTING_CASH).mul(target_weights, axis=1)
+    cumulative_returns_df = (returns_df+1).cumprod()
+    buy_and_hold_df = (cumulative_returns_df * STARTING_CASH).mul(target_weights, axis=1)
     buy_and_hold_df_alloc = (buy_and_hold_df.div(buy_and_hold_df.sum(axis=1), axis=0))
     buy_and_hold_df_returns = buy_and_hold_df.sum(axis=1).pct_change(1)
 
@@ -45,10 +49,10 @@ if __name__ == '__main__':
     rebalance_df_alloc = buy_and_hold_df_alloc.copy()
 
     for date in dates[1:]:
-        if minkowski(rebalance_df_alloc.shift(1).loc[date]) > ALLOWED_DRIFT:
-            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])) * target_weights
-        else:
+        if within_tolerance(target_weights.values, rebalance_df_alloc.shift(1).loc[date].values, MAX_DRIFT):
             rebalance_df.loc[date] = rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])
+        else:
+            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])) * target_weights
         rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum()))
 
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
@@ -73,24 +77,26 @@ if __name__ == '__main__':
     plt.gcf().clear()
     plt.close()
 
-    # WEIGHT OF ASSETS
+    # ALLOCATIONS
+    fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
+
     buy_and_hold_df_alloc.plot(
+        ax=axes_alloc[0],
         figsize=(12, 6),
         title='Weight of portfolio assets of buy-and-hold portfolio',
         kind='area',
+        legend=False,
         ylim=(0, 1)
     )
-    plt.savefig('buy_and_hold_weight')
-    plt.gcf().clear()
-    plt.close()
-
     rebalance_df_alloc.plot(
-        figsize=(12, 6),
+        ax=axes_alloc[1],
         title='Weight of portfolio assets of rebalanced portfolio',
         kind='area',
-        ylim=(0, 1)
+        legend=False
     )
-    plt.savefig('rebalance_weight')
+    axes_alloc[0].set_xlim(dates[0], dates[-1])
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
+    plt.savefig('Allocations')
     plt.gcf().clear()
     plt.close()
 
