@@ -1,12 +1,29 @@
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
-from functools import partial
 
 
-def minkowski_distance(arr_1, arr_2, p):
-    return sum(abs(arr_1 - arr_2)**p)**(1/p)
+def minkowski_distance(arr_1, arr_2, p: float):
+    """
+    An implementation of the metric for the Lebesgue spaces. The Minkowski distance generalizes to many
+    well-known metrics for specific choices of p. For example:
+
+    p = 1: Manhattan Distance
+
+    p = 2: Euclidian distance
+
+    p -> infinity: Chebyshev distance
+
+    For a given p, the function will return the distance between the two points at arr_1 and arr_2 in L^p space
+
+    :param arr_1: The location of the first point
+    :param arr_2: The location of the second point
+    :param p: The paramater specifying which p-norm will be used
+    :return: The distance between arr_1 and arr_2 in L^p space
+    """
+    if len(arr_1) != len(arr_2):
+        raise ValueError
+    return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
 def within_tolerance(target, current, drift):
@@ -34,7 +51,7 @@ if __name__ == '__main__':
     )
 
     # NON REBALANCED PORTFOLIO
-    cumulative_returns_df = (returns_df+1).cumprod()
+    cumulative_returns_df = (returns_df + 1).cumprod()
     buy_and_hold_df = (cumulative_returns_df * STARTING_CASH).mul(target_weights, axis=1)
     buy_and_hold_df_alloc = (buy_and_hold_df.div(buy_and_hold_df.sum(axis=1), axis=0))
     buy_and_hold_df_returns = buy_and_hold_df.sum(axis=1).pct_change(1)
