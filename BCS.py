@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
-    MINKOWSKI_P = 1
+    MINKOWSKI_P = 2
     RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
 
     returns_df = pd.read_csv(
@@ -70,6 +70,8 @@ if __name__ == '__main__':
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
 
     # MAKE AND SAVE PLOTS
+
+    # DAILY RETURNS
     buy_and_hold_ax = plt.subplot2grid((2, 2), (0, 0))
     rebalance_ax = plt.subplot2grid((2, 2), (1, 0))
     hist_ax = plt.subplot2grid((2, 2), (0, 1), rowspan=2)
@@ -128,7 +130,7 @@ if __name__ == '__main__':
     plt.gcf().clear()
     plt.close()
 
-    # PORTFOLIO RETURNS
+    # PORTFOLIO VALUES
 
     fig_values, axes_values = plt.subplots()
 
@@ -136,7 +138,7 @@ if __name__ == '__main__':
         ax=axes_values,
         figsize=(12, 6),
         title='Portfolio values',
-        label='Value of buy-and-hold portfolio'
+        label='Value of buy-and-hold portfolio',
     )
     rebalance_df.sum(axis=1).plot(
         ax=axes_values,
