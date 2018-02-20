@@ -45,11 +45,11 @@ if __name__ == '__main__':
     rebalance_df_alloc = buy_and_hold_df_alloc.copy()
 
     for date in dates[1:]:
-        if minkowski(rebalance_df_alloc.loc[date]) > ALLOWED_DRIFT:
-            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date] * (1 + returns_df.loc[date])) * target_weights
+        if minkowski(rebalance_df_alloc.shift(1).loc[date]) > ALLOWED_DRIFT:
+            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])) * target_weights
         else:
-            rebalance_df.loc[date] = rebalance_df.shift(1).loc[date] * (1 + returns_df.loc[date])
-        rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum(), axis=0))
+            rebalance_df.loc[date] = rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])
+        rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum()))
 
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
 
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     plt.close()
 
     rebalance_df.sum(axis=1).plot(
-        figsize=(12,6),
+        figsize=(12, 6),
         title='Value of portfolio',
         label='Value of portfolio'
     )
