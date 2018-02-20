@@ -15,7 +15,6 @@ def within_tolerance(target, current, drift):
 
 if __name__ == '__main__':
     sns.set()
-    sns.set_palette(sns.color_palette('Blues_r', 8))
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
@@ -33,10 +32,6 @@ if __name__ == '__main__':
         data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05],
         index=tickers
     )
-    minkowski = partial(
-        minkowski_distance,
-        arr_2=target_weights.values,
-        p=MINKOWSKI_P)
 
     # NON REBALANCED PORTFOLIO
     cumulative_returns_df = (returns_df+1).cumprod()
@@ -86,21 +81,41 @@ if __name__ == '__main__':
         title='Weight of portfolio assets of buy-and-hold portfolio',
         kind='area',
         legend=False,
-        ylim=(0, 1)
+        ylim=(0, 1),
+        colormap='Blues_r'
     )
     rebalance_df_alloc.plot(
         ax=axes_alloc[1],
         title='Weight of portfolio assets of rebalanced portfolio',
         kind='area',
-        legend=False
+        legend=False,
+        colormap='Blues_r'
     )
     axes_alloc[0].set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig('Allocations')
+    plt.savefig('Allocations', dpi=200)
     plt.gcf().clear()
     plt.close()
 
     # PORTFOLIO RETURNS
+    fig_returns, axes_returns = plt.subplots()
+
+    buy_and_hold_df.sum(axis=1).plot(
+        ax=axes_returns,
+        figsize=(12, 6),
+        title='Portfolio values',
+        label='Value of buy-and-hold portfolio'
+    )
+    rebalance_df.sum(axis=1).plot(
+        ax=axes_returns,
+        label='Value of rebalanced portfolio'
+    )
+    axes_returns.set_xlim(dates[0], dates[-1])
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
+    plt.savefig('Returns')
+    plt.gcf().clear()
+    plt.close()
+
     buy_and_hold_df.sum(axis=1).plot(
         figsize=(12, 6),
         title='Value of portfolio',
