@@ -1,6 +1,19 @@
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 import pandas as pd
 import seaborn as sns
+
+betterment_colors = [
+    '#79CCFF',  # SHY
+    '#ADE7FF',  # TIP
+    '#B5FFCB',  # VTI
+    '#41F39A',  # IVE
+    '#30EC9B',  # IWN
+    '#19DB9A',  # IWS
+    '#218080',  # EFA
+    '#112F42',  # EEM
+]
 
 
 def minkowski_distance(arr_1, arr_2, p):
@@ -45,6 +58,7 @@ def within_tolerance(target, current, drift):
 
 if __name__ == '__main__':
     sns.set_style('whitegrid')
+    cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_colors))
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
@@ -136,14 +150,14 @@ if __name__ == '__main__':
         kind='area',
         legend=False,
         ylim=(0, 1),
-        colormap='Blues_r'
+        colormap=cm.get_cmap('betterment')
     )
     rebalance_df_alloc.plot(
         ax=axes_alloc[1],
         title='Weight of portfolio assets of rebalanced portfolio',
         kind='area',
         legend=False,
-        colormap='Blues_r'
+        colormap=cm.get_cmap('betterment')
     )
     axes_alloc[0].set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
