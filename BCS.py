@@ -14,11 +14,11 @@ def within_tolerance(target, current, drift):
 
 
 if __name__ == '__main__':
-    sns.set()
+    sns.set_style('whitegrid')
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
-    MINKOWSKI_P = 2
+    MINKOWSKI_P = 1
     RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
 
     returns_df = pd.read_csv(
@@ -53,22 +53,36 @@ if __name__ == '__main__':
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
 
     # MAKE AND SAVE PLOTS
-
-    # DAILY RETURNS
+    buy_and_hold_ax = plt.subplot2grid((2, 2), (0, 0))
+    rebalance_ax = plt.subplot2grid((2, 2), (1, 0))
+    hist_ax = plt.subplot2grid((2, 2), (0, 1), rowspan=2)
     buy_and_hold_df_returns.plot(
+        ax=buy_and_hold_ax,
         figsize=(12, 6),
         title='Daily returns of buy-and-hold portfolio',
-        label='Daily returns')
-    plt.savefig('buy_and_hold_daily_returns.png')
-    plt.gcf().clear()
-    plt.close()
-
-    rebalance_df_returns.plot(
-        figsize=(12, 6),
-        title='Daily returns of rebalanced portfolio',
-        label='Daily returns'
     )
-    plt.savefig('rebalance_daily_returns.png')
+    rebalance_df_returns.plot(
+        ax=rebalance_ax,
+        title='Daily returns of rebalanced portfolio',
+    )
+    buy_and_hold_df_returns.plot(
+        ax=hist_ax,
+        kind='hist',
+        bins=100,
+        alpha=0.5,
+        title='Histogram of returns',
+        label='Buy and Hold'
+    )
+    rebalance_df_returns.plot(
+        ax=hist_ax,
+        kind='hist',
+        bins=100,
+        alpha=0.5,
+        label='Rebalance'
+    )
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('daily_returns.png')
     plt.gcf().clear()
     plt.close()
 
@@ -93,26 +107,26 @@ if __name__ == '__main__':
     )
     axes_alloc[0].set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig('asset_allocations')
+    plt.savefig('asset_allocations.png')
     plt.gcf().clear()
     plt.close()
 
     # PORTFOLIO RETURNS
 
-    fig_returns, axes_returns = plt.subplots()
+    fig_values, axes_values = plt.subplots()
 
     buy_and_hold_df.sum(axis=1).plot(
-        ax=axes_returns,
+        ax=axes_values,
         figsize=(12, 6),
         title='Portfolio values',
         label='Value of buy-and-hold portfolio'
     )
     rebalance_df.sum(axis=1).plot(
-        ax=axes_returns,
+        ax=axes_values,
         label='Value of rebalanced portfolio'
     )
-    axes_returns.set_xlim(dates[0], dates[-1])
+    axes_values.set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    plt.savefig('values')
+    plt.savefig('values.png')
     plt.gcf().clear()
     plt.close()
