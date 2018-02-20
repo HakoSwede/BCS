@@ -29,7 +29,7 @@ if __name__ == '__main__':
         data=dict(zip(tickers, [0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05])),
         index=[dates[0]]
     )
-
+    print(initial_weights)
     minkowski = partial(
         minkowski_distance,
         arr_2=initial_weights.values[0],
