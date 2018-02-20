@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
-    MINKOWSKI_P = 2
+    MINKOWSKI_P = 1
     RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
 
     returns_df = pd.read_csv(
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         if within_tolerance(target_weights.values, rebalance_df_alloc.shift(1).loc[date].values, MAX_DRIFT):
             rebalance_df.loc[date] = rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])
         else:
-            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date] * (1 + returns_df.loc[date])) * target_weights
+            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])) * target_weights
         rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum()))
 
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         ax=axes_values,
         figsize=(12, 6),
         title='Portfolio values',
-        label='Value of buy-and-hold portfolio',
+        label='Value of buy-and-hold portfolio'
     )
     rebalance_df.sum(axis=1).plot(
         ax=axes_values,
