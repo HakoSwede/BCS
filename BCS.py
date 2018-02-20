@@ -93,11 +93,12 @@ if __name__ == '__main__':
     )
     axes_alloc[0].set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig('Allocations', dpi=200)
+    plt.savefig('asset_allocations')
     plt.gcf().clear()
     plt.close()
 
     # PORTFOLIO RETURNS
+
     fig_returns, axes_returns = plt.subplots()
 
     buy_and_hold_df.sum(axis=1).plot(
@@ -112,24 +113,6 @@ if __name__ == '__main__':
     )
     axes_returns.set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    plt.savefig('Returns')
-    plt.gcf().clear()
-    plt.close()
-
-    buy_and_hold_df.sum(axis=1).plot(
-        figsize=(12, 6),
-        title='Value of portfolio',
-        label='Value of portfolio'
-    )
-    plt.savefig('buy_and_hold_value')
-    plt.gcf().clear()
-    plt.close()
-
-    rebalance_df.sum(axis=1).plot(
-        figsize=(12, 6),
-        title='Value of portfolio',
-        label='Value of portfolio'
-    )
-    plt.savefig('rebalance_value')
+    plt.savefig('values')
     plt.gcf().clear()
     plt.close()
