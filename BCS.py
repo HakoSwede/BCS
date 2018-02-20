@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 
 
-def minkowski_distance(arr_1, arr_2, p: float):
+def minkowski_distance(arr_1, arr_2, p):
     """
     An implementation of the metric for the Lebesgue spaces. The Minkowski distance generalizes to many
     well-known metrics for specific choices of p. For example:
@@ -17,8 +17,11 @@ def minkowski_distance(arr_1, arr_2, p: float):
     For a given p, the function will return the distance between the two points at arr_1 and arr_2 in L^p space
 
     :param arr_1: The location of the first point
+    :type arr_1: array-like
     :param arr_2: The location of the second point
+    :type arr_2: array-like
     :param p: The paramater specifying which p-norm will be used
+    :type p: float
     :return: The distance between arr_1 and arr_2 in L^p space
     """
     if len(arr_1) != len(arr_2):
@@ -27,6 +30,16 @@ def minkowski_distance(arr_1, arr_2, p: float):
 
 
 def within_tolerance(target, current, drift):
+    """
+
+    :param target:
+    :type target: array-like
+    :param current:
+    :type current: array-like
+    :param drift:
+    :type drift: float
+    :return:
+    """
     return minkowski_distance(target, current, MINKOWSKI_P) < drift
 
 
@@ -64,10 +77,18 @@ if __name__ == '__main__':
         if within_tolerance(target_weights.values, rebalance_df_alloc.shift(1).loc[date].values, MAX_DRIFT):
             rebalance_df.loc[date] = rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])
         else:
-            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])) * target_weights
+            rebalance_df.loc[date] = target_weights * sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date]))
         rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum()))
 
     rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
+
+    # SAVE DATASETS TO FILE
+    buy_and_hold_df.sum(axis=1).to_csv('values_buy_and_hold')
+    rebalance_df.sum(axis=1).to_csv('values_rebalance')
+    buy_and_hold_df_alloc.to_csv('allocation_buy_and_hold')
+    rebalance_df_alloc.to_csv('allocation_rebalance')
+    buy_and_hold_df_returns.to_csv('returns_buy_and_hold')
+    rebalance_df_returns.to_csv('returns_rebalance')
 
     # MAKE AND SAVE PLOTS
 
