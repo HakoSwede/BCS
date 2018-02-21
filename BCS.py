@@ -10,6 +10,8 @@ STARTING_CASH = 100000
 MAX_DRIFT = 0.05
 MINKOWSKI_P = 5
 PATH = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+BETTERMENT_BLUE = '#1F4AB4'
+BETTERMENT_GRAY = '#30363D'
 betterment_palette = [
     '#79CCFF',  # SHY
     '#ADE7FF',  # TIP
@@ -140,10 +142,12 @@ if __name__ == '__main__':
         ax=buy_and_hold_ax,
         figsize=(12, 6),
         title='Daily returns of buy-and-hold portfolio',
+        color=BETTERMENT_GRAY
     )
     rebalance_df['returns'].plot(
         ax=rebalance_ax,
         title='Daily returns of rebalanced portfolio',
+        color=BETTERMENT_BLUE
     )
     buy_and_hold_df['returns'].plot(
         ax=hist_ax,
@@ -151,14 +155,16 @@ if __name__ == '__main__':
         bins=100,
         alpha=0.5,
         title='Histogram of returns',
-        label='Buy and Hold'
+        label='Buy and Hold',
+        color=BETTERMENT_GRAY
     )
     rebalance_df['returns'].plot(
         ax=hist_ax,
         kind='hist',
         bins=100,
         alpha=0.5,
-        label='Rebalance'
+        label='Rebalance',
+        color=BETTERMENT_BLUE
     )
     plt.legend()
     plt.tight_layout()
@@ -198,10 +204,12 @@ if __name__ == '__main__':
         figsize=(12, 6),
         title='Portfolio values',
         label='Value of buy-and-hold portfolio',
+        color=BETTERMENT_GRAY
     )
     rebalance_df['values'].sum(axis=1).plot(
         ax=axes_values,
-        label='Value of rebalanced portfolio'
+        label='Value of rebalanced portfolio',
+        color=BETTERMENT_BLUE
     )
     axes_values.set_xlim(dates[0], dates[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
