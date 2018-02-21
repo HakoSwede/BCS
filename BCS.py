@@ -3,6 +3,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pandas as pd
 import seaborn as sns
+from copy import deepcopy
 
 betterment_palette = [
     '#79CCFF',  # SHY
@@ -60,7 +61,7 @@ if __name__ == '__main__':
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
-    MINKOWSKI_P = 2.0
+    MINKOWSKI_P = 5.0
     RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
 
     returns_df = pd.read_csv(
@@ -80,31 +81,35 @@ if __name__ == '__main__':
     returns_df[zip(['cumulative']*8, tickers)] = (returns_df['daily'] + 1).cumprod()
 
     # NON REBALANCED PORTFOLIO
-    cumulative_returns_df = (returns_df + 1).cumprod()
-    buy_and_hold_df = (cumulative_returns_df * STARTING_CASH).mul(target_weights, axis=1)
-    buy_and_hold_df_alloc = (buy_and_hold_df.div(buy_and_hold_df.sum(axis=1), axis=0))
-    buy_and_hold_df_returns = buy_and_hold_df.sum(axis=1).pct_change(1)
+    buy_and_hold_df = pd.DataFrame(
+        data=(returns_df['cumulative'] * STARTING_CASH).mul(target_weights, axis=1).values,
+        index=dates,
+        columns=pd.MultiIndex.from_tuples(list(zip(['values'] * 8, tickers)))
+    )
+    buy_and_hold_df[zip(['allocations']*8, tickers)] = (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
+    buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
+
+
 
     # REBALANCED PORTFOLIO
     rebalance_df = buy_and_hold_df.copy()
-    rebalance_df_alloc = buy_and_hold_df_alloc.copy()
 
     for date in dates[1:]:
-        if within_tolerance(target_weights.values, rebalance_df_alloc.shift(1).loc[date].values, MAX_DRIFT):
-            rebalance_df.loc[date] = rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])
+        if within_tolerance(target_weights.values, rebalance_df.shift(1).loc[date, 'allocations'].values, MAX_DRIFT):
+            rebalance_df.loc[date, 'values'] = rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
         else:
-            rebalance_df.loc[date] = sum(rebalance_df.shift(1).loc[date].mul(1 + returns_df.loc[date])) * target_weights
-        rebalance_df_alloc.loc[date] = (rebalance_df.loc[date].div(rebalance_df.loc[date].sum()))
+            rebalance_df.loc[date, 'values'] = (sum(rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])) * target_weights).values
+        rebalance_df.loc[date, 'allocations'] = (rebalance_df.loc[date, 'values'].div(rebalance_df.loc[date, 'values'].sum())).values
 
-    rebalance_df_returns = rebalance_df.sum(axis=1).pct_change(1)
+    rebalance_df['returns'] = rebalance_df['values'].sum(axis=1).pct_change(1)
 
     # SAVE DATASETS TO FILE
-    buy_and_hold_df.sum(axis=1).to_csv('values_buy_and_hold')
-    rebalance_df.sum(axis=1).to_csv('values_rebalance')
-    buy_and_hold_df_alloc.to_csv('allocation_buy_and_hold')
-    rebalance_df_alloc.to_csv('allocation_rebalance')
-    buy_and_hold_df_returns.to_csv('returns_buy_and_hold')
-    rebalance_df_returns.to_csv('returns_rebalance')
+    buy_and_hold_df['values'].sum(axis=1).to_csv('values_buy_and_hold')
+    rebalance_df['values'].sum(axis=1).to_csv('values_rebalance')
+    buy_and_hold_df['allocations'].to_csv('allocation_buy_and_hold')
+    rebalance_df['allocations'].to_csv('allocation_rebalance')
+    buy_and_hold_df['returns'].to_csv('returns_buy_and_hold')
+    rebalance_df['returns'].to_csv('returns_rebalance')
 
     # MAKE AND SAVE PLOTS
 
@@ -112,16 +117,16 @@ if __name__ == '__main__':
     buy_and_hold_ax = plt.subplot2grid((2, 2), (0, 0))
     rebalance_ax = plt.subplot2grid((2, 2), (1, 0))
     hist_ax = plt.subplot2grid((2, 2), (0, 1), rowspan=2)
-    buy_and_hold_df_returns.plot(
+    buy_and_hold_df['returns'].plot(
         ax=buy_and_hold_ax,
         figsize=(12, 6),
         title='Daily returns of buy-and-hold portfolio',
     )
-    rebalance_df_returns.plot(
+    rebalance_df['returns'].plot(
         ax=rebalance_ax,
         title='Daily returns of rebalanced portfolio',
     )
-    buy_and_hold_df_returns.plot(
+    buy_and_hold_df['returns'].plot(
         ax=hist_ax,
         kind='hist',
         bins=100,
@@ -129,7 +134,7 @@ if __name__ == '__main__':
         title='Histogram of returns',
         label='Buy and Hold'
     )
-    rebalance_df_returns.plot(
+    rebalance_df['returns'].plot(
         ax=hist_ax,
         kind='hist',
         bins=100,
@@ -145,7 +150,7 @@ if __name__ == '__main__':
     # ALLOCATIONS
     fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
 
-    buy_and_hold_df_alloc.plot(
+    buy_and_hold_df['allocations'].plot(
         ax=axes_alloc[0],
         figsize=(12, 6),
         title='Weight of portfolio assets of buy-and-hold portfolio',
@@ -154,7 +159,7 @@ if __name__ == '__main__':
         ylim=(0, 1),
         colormap=cm.get_cmap('betterment', 8)
     )
-    rebalance_df_alloc.plot(
+    rebalance_df['allocations'].plot(
         ax=axes_alloc[1],
         title='Weight of portfolio assets of rebalanced portfolio',
         kind='area',
@@ -171,13 +176,13 @@ if __name__ == '__main__':
 
     fig_values, axes_values = plt.subplots()
 
-    buy_and_hold_df.sum(axis=1).plot(
+    buy_and_hold_df['values'].sum(axis=1).plot(
         ax=axes_values,
         figsize=(12, 6),
         title='Portfolio values',
         label='Value of buy-and-hold portfolio',
     )
-    rebalance_df.sum(axis=1).plot(
+    rebalance_df['values'].sum(axis=1).plot(
         ax=axes_values,
         label='Value of rebalanced portfolio'
     )
