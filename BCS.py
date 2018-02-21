@@ -1,9 +1,11 @@
+import sys
+import os
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pandas as pd
 import seaborn as sns
-from copy import deepcopy
+from tqdm import tqdm
 
 betterment_palette = [
     '#79CCFF',  # SHY
@@ -62,10 +64,10 @@ if __name__ == '__main__':
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
     MINKOWSKI_P = 5.0
-    RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
+    PATH = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
     returns_df = pd.read_csv(
-        filepath_or_buffer='{0}/portfolio_returns.csv'.format(RELATIVE_PATH),
+        filepath_or_buffer=os.path.join(PATH, 'portfolio_returns.csv'),
         index_col=0,
         parse_dates=True
     )
@@ -94,22 +96,26 @@ if __name__ == '__main__':
     # REBALANCED PORTFOLIO
     rebalance_df = buy_and_hold_df.copy()
 
-    for date in dates[1:]:
+    for date in tqdm(dates[1:]):
         if within_tolerance(target_weights.values, rebalance_df.shift(1).loc[date, 'allocations'].values, MAX_DRIFT):
-            rebalance_df.loc[date, 'values'] = rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
+            rebalance_df.loc[date, 'values'] = \
+                rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
         else:
-            rebalance_df.loc[date, 'values'] = (sum(rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])) * target_weights).values
-        rebalance_df.loc[date, 'allocations'] = (rebalance_df.loc[date, 'values'].div(rebalance_df.loc[date, 'values'].sum())).values
+            rebalance_df.loc[date, 'values'] = \
+                (sum(rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])) *
+                 target_weights).values
+        rebalance_df.loc[date, 'allocations'] = \
+            (rebalance_df.loc[date, 'values'].div(rebalance_df.loc[date, 'values'].sum())).values
 
     rebalance_df['returns'] = rebalance_df['values'].sum(axis=1).pct_change(1)
 
     # SAVE DATASETS TO FILE
-    buy_and_hold_df['values'].sum(axis=1).to_csv('values_buy_and_hold')
-    rebalance_df['values'].sum(axis=1).to_csv('values_rebalance')
-    buy_and_hold_df['allocations'].to_csv('allocation_buy_and_hold')
-    rebalance_df['allocations'].to_csv('allocation_rebalance')
-    buy_and_hold_df['returns'].to_csv('returns_buy_and_hold')
-    rebalance_df['returns'].to_csv('returns_rebalance')
+    buy_and_hold_df['values'].sum(axis=1).to_csv('values_buy_and_hold.csv')
+    rebalance_df['values'].sum(axis=1).to_csv('values_rebalance.csv')
+    buy_and_hold_df['allocations'].to_csv('allocation_buy_and_hold.csv')
+    rebalance_df['allocations'].to_csv('allocation_rebalance.csv')
+    buy_and_hold_df['returns'].to_csv('returns_buy_and_hold.csv')
+    rebalance_df['returns'].to_csv('returns_rebalance.csv')
 
     # MAKE AND SAVE PLOTS
 
