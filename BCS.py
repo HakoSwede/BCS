@@ -65,6 +65,99 @@ def within_tolerance(target, current, p, drift):
     return minkowski_distance(target, current, p) < drift
 
 
+def make_images(df_1, df_2):
+    """
+    General function for plotting images of the dataframes created by the main code of the file.
+
+    :param df_1: The first dataframe to plot. This is the benchmark.
+    :param df_2: The second dataframe to plot. This is the portfolio.
+    :return:
+    """
+
+    # RETURNS PLOT
+    df_1_ax = plt.subplot2grid((2, 2), (0, 0))
+    df_2_ax = plt.subplot2grid((2, 2), (1, 0))
+    hist_ax = plt.subplot2grid((2, 2), (0, 1), rowspan=2)
+
+    df_1['returns'].plot(
+        ax=df_1_ax,
+        figsize=(12, 6),
+        title='Daily returns of buy-and-hold portfolio',
+        color=BETTERMENT_GRAY
+    )
+    df_2['returns'].plot(
+        ax=df_2_ax,
+        title='Daily returns of rebalanced portfolio',
+        color=BETTERMENT_BLUE
+    )
+    df_1['returns'].plot(
+        ax=hist_ax,
+        kind='hist',
+        bins=50,
+        alpha=0.5,
+        title='Histogram of returns',
+        label='Buy and Hold',
+        color=BETTERMENT_GRAY
+    )
+    df_2['returns'].plot(
+        ax=hist_ax,
+        kind='hist',
+        bins=50,
+        alpha=0.5,
+        label='Rebalance',
+        color=BETTERMENT_BLUE
+    )
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('daily_returns.png')
+    plt.gcf().clear()
+
+    # ALLOCATIONS PLOT
+    fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
+
+    df_1['allocations'].plot(
+        ax=axes_alloc[0],
+        figsize=(12, 6),
+        title='Weight of portfolio assets of buy-and-hold portfolio',
+        kind='area',
+        legend=False,
+        ylim=(0, 1),
+        colormap=cm.get_cmap('betterment', 8)
+    )
+    df_2['allocations'].plot(
+        ax=axes_alloc[1],
+        title='Weight of portfolio assets of rebalanced portfolio',
+        kind='area',
+        legend=False,
+        colormap=cm.get_cmap('betterment')
+    )
+    axes_alloc[0].set_xlim(dates[0], dates[-1])
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
+    plt.savefig('asset_allocations.png', dpi=300)
+    plt.gcf().clear()
+
+    # PORTFOLIO VALUE PLOT
+    fig_values, axes_values = plt.subplots()
+
+    df_1['values'].sum(axis=1).plot(
+        ax=axes_values,
+        figsize=(12, 6),
+        title='Portfolio values',
+        label='Value of buy-and-hold portfolio',
+        color=BETTERMENT_GRAY
+    )
+    df_2['values'].sum(axis=1).plot(
+        ax=axes_values,
+        label='Value of rebalanced portfolio',
+        color=BETTERMENT_BLUE
+    )
+    axes_values.set_xlim(dates[0], dates[-1])
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
+    plt.savefig('values.png')
+    plt.gcf().clear()
+    plt.close()
+
+
 if __name__ == '__main__':
     sns.set_style('whitegrid')
     cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_palette))
@@ -133,86 +226,4 @@ if __name__ == '__main__':
     buy_and_hold_df['returns'].to_csv('returns_buy_and_hold.csv')
     rebalance_df['returns'].to_csv('returns_rebalance.csv')
 
-    # MAKE AND SAVE PLOTS
-    # DAILY RETURNS
-    buy_and_hold_ax = plt.subplot2grid((2, 2), (0, 0))
-    rebalance_ax = plt.subplot2grid((2, 2), (1, 0))
-    hist_ax = plt.subplot2grid((2, 2), (0, 1), rowspan=2)
-    buy_and_hold_df['returns'].plot(
-        ax=buy_and_hold_ax,
-        figsize=(12, 6),
-        title='Daily returns of buy-and-hold portfolio',
-        color=BETTERMENT_GRAY
-    )
-    rebalance_df['returns'].plot(
-        ax=rebalance_ax,
-        title='Daily returns of rebalanced portfolio',
-        color=BETTERMENT_BLUE
-    )
-    buy_and_hold_df['returns'].plot(
-        ax=hist_ax,
-        kind='hist',
-        bins=100,
-        alpha=0.5,
-        title='Histogram of returns',
-        label='Buy and Hold',
-        color=BETTERMENT_GRAY
-    )
-    rebalance_df['returns'].plot(
-        ax=hist_ax,
-        kind='hist',
-        bins=100,
-        alpha=0.5,
-        label='Rebalance',
-        color=BETTERMENT_BLUE
-    )
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig('daily_returns.png')
-    plt.gcf().clear()
-
-    # ALLOCATIONS
-    fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
-
-    buy_and_hold_df['allocations'].plot(
-        ax=axes_alloc[0],
-        figsize=(12, 6),
-        title='Weight of portfolio assets of buy-and-hold portfolio',
-        kind='area',
-        legend=False,
-        ylim=(0, 1),
-        colormap=cm.get_cmap('betterment', 8)
-    )
-    rebalance_df['allocations'].plot(
-        ax=axes_alloc[1],
-        title='Weight of portfolio assets of rebalanced portfolio',
-        kind='area',
-        legend=False,
-        colormap=cm.get_cmap('betterment')
-    )
-    axes_alloc[0].set_xlim(dates[0], dates[-1])
-    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig('asset_allocations.png', dpi=300)
-    plt.gcf().clear()
-
-    # PORTFOLIO VALUES
-
-    fig_values, axes_values = plt.subplots()
-
-    buy_and_hold_df['values'].sum(axis=1).plot(
-        ax=axes_values,
-        figsize=(12, 6),
-        title='Portfolio values',
-        label='Value of buy-and-hold portfolio',
-        color=BETTERMENT_GRAY
-    )
-    rebalance_df['values'].sum(axis=1).plot(
-        ax=axes_values,
-        label='Value of rebalanced portfolio',
-        color=BETTERMENT_BLUE
-    )
-    axes_values.set_xlim(dates[0], dates[-1])
-    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    plt.savefig('values.png')
-    plt.gcf().clear()
-    plt.close()
+    make_images(buy_and_hold_df, rebalance_df)
