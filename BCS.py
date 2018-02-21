@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
-    MINKOWSKI_P = 1
+    MINKOWSKI_P = 2.0
     RELATIVE_PATH = 'C:/Users/Tiger/PycharmProjects/BettermentCaseStudy'
 
     returns_df = pd.read_csv(
