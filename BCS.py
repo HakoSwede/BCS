@@ -1,7 +1,8 @@
 import os
-import matplotlib.pyplot as plt
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
@@ -62,7 +63,7 @@ if __name__ == '__main__':
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
-    MINKOWSKI_P = 5.0
+    MINKOWSKI_P = 5
     PATH = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
     returns_df = pd.read_csv(
@@ -70,14 +71,12 @@ if __name__ == '__main__':
         index_col=0,
         parse_dates=True
     )
+
     tickers = returns_df.columns
     dates = returns_df.index
     returns_df.index.name = 'Date'
     returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
-    target_weights = pd.Series(
-        data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05],
-        index=tickers
-    )
+    target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
 
     returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
 
@@ -87,10 +86,9 @@ if __name__ == '__main__':
         index=dates,
         columns=pd.MultiIndex.from_product([['values'], tickers])
     )
-    buy_and_hold_df[list(zip(['allocations']*8, tickers))] = (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
+    buy_and_hold_df[list(zip(['allocations']*8, tickers))] = \
+        (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
     buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
-
-
 
     # REBALANCED PORTFOLIO
     rebalance_df = buy_and_hold_df.copy()
