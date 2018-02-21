@@ -4,7 +4,7 @@ import matplotlib.colors as colors
 import pandas as pd
 import seaborn as sns
 
-betterment_colors = [
+betterment_palette = [
     '#79CCFF',  # SHY
     '#ADE7FF',  # TIP
     '#B5FFCB',  # VTI
@@ -56,7 +56,7 @@ def within_tolerance(target, current, drift):
 
 if __name__ == '__main__':
     sns.set_style('whitegrid')
-    cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_colors))
+    cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_palette))
 
     STARTING_CASH = 100000
     MAX_DRIFT = 0.05
@@ -70,10 +70,14 @@ if __name__ == '__main__':
     )
     tickers = returns_df.columns
     dates = returns_df.index
+    returns_df.index.name = 'Date'
+    returns_df.columns = pd.MultiIndex.from_tuples(list(zip(['daily'] * 8, tickers)))
     target_weights = pd.Series(
         data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05],
         index=tickers
     )
+
+    returns_df[zip(['cumulative']*8, tickers)] = (returns_df['daily'] + 1).cumprod()
 
     # NON REBALANCED PORTFOLIO
     cumulative_returns_df = (returns_df + 1).cumprod()
@@ -148,7 +152,7 @@ if __name__ == '__main__':
         kind='area',
         legend=False,
         ylim=(0, 1),
-        colormap=cm.get_cmap('betterment')
+        colormap=cm.get_cmap('betterment', 8)
     )
     rebalance_df_alloc.plot(
         ax=axes_alloc[1],
@@ -171,7 +175,7 @@ if __name__ == '__main__':
         ax=axes_values,
         figsize=(12, 6),
         title='Portfolio values',
-        label='Value of buy-and-hold portfolio'
+        label='Value of buy-and-hold portfolio',
     )
     rebalance_df.sum(axis=1).plot(
         ax=axes_values,
