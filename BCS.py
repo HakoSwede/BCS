@@ -50,6 +50,7 @@ def minkowski_distance(arr_1, arr_2, p):
 
 
 def generate_sensitivity_plot(returns, df, target_weights):
+    df = df.copy()
     min_p, max_p, step_p = 1, 10, 1
     min_tol, max_tol, step_tol = 0.02, 0.2, 0.01
     sharpe_df = pd.DataFrame(
@@ -61,8 +62,8 @@ def generate_sensitivity_plot(returns, df, target_weights):
         for j, tol in enumerate(np.arange(min_tol, max_tol, step_tol)):
             rebalanced = generate_rebalanced(returns, df, p, target_weights, tol)
             _, _, sharpe = calculate_summary_statistics(rebalanced)
-            sharpe_df[i][j] = sharpe
-    print(sharpe_df)
+            print("row {0}, column {1}, sharpe: {2}".format(i,j,sharpe))
+
 
 def generate_rebalanced(returns, df, p, target_weights, tolerance):
     # REBALANCED PORTFOLIO
@@ -73,20 +74,23 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
     # for more info.
     df = df.copy()
     dates = df.index
+    trades = pd.DataFrame(columns=tickers)
+    trades.loc[dates[0]] = df.loc[dates[0], 'values'].values
     current_drift = partial(minkowski_distance, arr_2=target_weights.values, p=p)
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
         end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
         if current_drift(df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
+            prev_vals = df.loc[date, 'values'].copy()
             df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
             df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
                 returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
-
+            trade = pd.Series(df.loc[date, 'values'] - prev_vals)
+            trades.loc[date] = trade
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
             df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(df.loc[date:, 'values'].sum(axis=1), axis=0).values
-
     df['returns'] = df['values'].sum(axis=1).pct_change(1)
 
     return df
