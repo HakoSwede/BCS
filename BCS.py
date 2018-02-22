@@ -8,10 +8,8 @@ import seaborn as sns
 from tqdm import tqdm
 from functools import partial
 
+# Declaration of constants
 STARTING_CASH = 100_000
-MAX_DRIFT = 0.05
-MINKOWSKI_P = 5
-PATH = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 BETTERMENT_BLUE = '#1F4AB4'
 BETTERMENT_GRAY = '#30363D'
 betterment_palette = [
@@ -50,76 +48,40 @@ def minkowski_distance(arr_1, arr_2, p):
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
-def within2_tolerance(target, current, p, drift):
-    """
-    Checks whether the Minkowski distance between two points is within the specified tolerance
-
-    :param target: The point-location of the ideal asset allocation
-    :type target: array-like
-    :param current: The point-location of the current asset allocation
-    :type current: array-like
-    :param p: The parameter specifying which p-norm will be used
-    :type p: float
-    :param drift: The allowed drift from the ideal asset allocation
-    :type drift: float
-    :return: Boolean specifying whether the current allocation is within tolerance
-    """
-    return minkowski_distance(target, current, p) < drift
+def generate_sensitivity_plot():
+    min_p, max_p = 1, 10
+    min_tol, max_tol = 0.02, 0.2
+    for p in range(min_p, max_p + 1):
+        for tol in range(min_tol, max_tol):
+            pass
 
 
-def generate_portfolios(returns, p, tolerance):
-    tickers = returns.columns
-    dates = returns.index
-    returns.index.name = 'Date'
-    returns.columns = pd.MultiIndex.from_product([['daily'], tickers])
-    target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
-
-    current_drift = partial(minkowski_distance, arr_2=target_weights.values, p=p)
-
-    returns[list(zip(['cumulative'] * 8, tickers))] = (returns['daily'] + 1).cumprod()
-
-    # BUY AND HOLD PORTFOLIO
-    # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
-    # the target ETF portfolio and then holds it for the period.
-    buy_and_hold_df = pd.DataFrame(
-        data=(returns_df['cumulative'] * STARTING_CASH).mul(target_weights, axis=1).values,
-        index=dates,
-        columns=pd.MultiIndex.from_product([['values'], tickers])
-    )
-    buy_and_hold_df[list(zip(['allocations'] * 8, tickers))] = \
-        (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
-    buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
-
+def generate_rebalanced(dates, returns, buy_and_hold_df, p, target_weights, tolerance):
     # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our main portfolio of interest. Like the buy-and-hold portfolio, we initialize the
     # rebalanced portfolio using the target ETF portfolio, but unlike the former, we rebalance the portfolio whenever
     # the current allocation strays too far from our target.
     # The definition of 'too far' is given by the Minkowski distance function. See docstring for minkowski_distance
     # for more info.
+    current_drift = partial(minkowski_distance, arr_2=target_weights.values, p=p)
     rebalance_df = buy_and_hold_df.copy()
-
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
         end_of_day_values = rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
         if current_drift(rebalance_df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             rebalance_df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
-            rebalance_df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(returns.loc[date, 'cumulative']).mul(rebalance_df.loc[date, 'values'], axis=1).values
+            rebalance_df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
+                returns.loc[date, 'cumulative']).mul(rebalance_df.loc[date, 'values'], axis=1).values
 
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
-            rebalance_df.loc[date:, 'allocations'] = rebalance_df.loc[date:, 'values'].div(rebalance_df.loc[date:, 'values'].sum(axis=1), axis=0).values
+            rebalance_df.loc[date:, 'allocations'] = rebalance_df.loc[date:, 'values'].div(
+                rebalance_df.loc[date:, 'values'].sum(axis=1), axis=0).values
 
     rebalance_df['returns'] = rebalance_df['values'].sum(axis=1).pct_change(1)
 
-    save_to_file(buy_and_hold_df, rebalance_df)
-    make_images(buy_and_hold_df, rebalance_df)
-
-    annualized_returns = (rebalance_df['values'].iloc[-1].sum() / STARTING_CASH) ** (31_536_000 / ((dates[-1] - dates[0]).total_seconds())) - 1
-    annualized_volatility = rebalance_df['returns'].std() * (252 ** 0.5)
-    sharpe = annualized_returns / annualized_volatility
-
-    return sharpe
+    return rebalance_df
 
 
 def save_to_file(df_1, df_2):
@@ -228,12 +190,41 @@ def make_images(df_1, df_2):
 
 
 if __name__ == '__main__':
+    max_drift = 0.05
+    minkowski_p = 5
     sns.set_style('whitegrid')
     cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_palette))
     returns_df = pd.read_csv(
-        filepath_or_buffer=os.path.join(PATH, 'portfolio_returns.csv'),
+        filepath_or_buffer='portfolio_returns.csv',
         index_col=0,
         parse_dates=True
     )
+    tickers = returns_df.columns
+    dates = returns_df.index
+    returns_df.index.name = 'Date'
+    returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
+    target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
 
-    generate_portfolios(returns_df, 5, 0.05)
+    returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
+
+    # BUY AND HOLD PORTFOLIO
+    # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
+    # the target ETF portfolio and then holds it for the period.
+    buy_and_hold_df = pd.DataFrame(
+        data=(returns_df['cumulative'] * STARTING_CASH).mul(target_weights, axis=1).values,
+        index=dates,
+        columns=pd.MultiIndex.from_product([['values'], tickers])
+    )
+    buy_and_hold_df[list(zip(['allocations'] * 8, tickers))] = \
+        (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
+    buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
+
+    rebalance_df = generate_rebalanced(dates, returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
+
+    save_to_file(buy_and_hold_df, rebalance_df)
+    make_images(buy_and_hold_df, rebalance_df)
+
+    annualized_returns = (rebalance_df['values'].iloc[-1].sum() / STARTING_CASH) ** (
+                60*60*24*365 / ((dates[-1] - dates[0]).total_seconds())) - 1
+    annualized_volatility = rebalance_df['returns'].std() * (252 ** 0.5)
+    sharpe = annualized_returns / annualized_volatility
