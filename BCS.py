@@ -1,4 +1,7 @@
 import os
+from functools import partial
+from math import ceil
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -6,12 +9,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
-from functools import partial
-from math import ceil
 
 # Declaration of constants
 STARTING_CASH = 100_000
-TRADING_COST = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
+COMMISSION = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
 BETTERMENT_BLUE = '#1F4AB4'
 BETTERMENT_GRAY = '#30363D'
 betterment_palette = [
@@ -85,8 +86,10 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             prev_vals = df.loc[date, 'values'].copy()
-            df.loc[date, 'values'] = ((sum(end_of_day_values.values) * target_weights) - \
-                                     (abs(end_of_day_values.div(sum(end_of_day_values.values)) - target_weights) * sum(end_of_day_values.values) * TRADING_COST)).values
+            position_value = sum(end_of_day_values.values) * target_weights
+            trading_cost = abs(end_of_day_values.div(sum(end_of_day_values.values)) - target_weights) * \
+                           sum(end_of_day_values.values) * COMMISSION
+            df.loc[date, 'values'] = (position_value - trading_cost).values
             df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
                 returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
             trade = pd.Series(df.loc[date, 'values'] - prev_vals)
@@ -160,7 +163,7 @@ def make_images(df_1, df_2, trades_df):
     plt.gcf().clear()
 
     # ALLOCATIONS PLOT
-    fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
+    fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
 
     df_1['allocations'].plot(
         ax=axes_alloc[0],
