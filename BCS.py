@@ -80,12 +80,13 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
     trades.loc[dates[0]] = df.loc[dates[0], 'values'].values
     current_drift = partial(minkowski_distance, arr_2=target_weights.values, p=p)
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
-        end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
+        end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])
         if current_drift(df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             prev_vals = df.loc[date, 'values'].copy()
-            df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values * (1 - TRADING_COST)
+            df.loc[date, 'values'] = ((sum(end_of_day_values.values) * target_weights) - \
+                                     (abs(end_of_day_values.div(sum(end_of_day_values.values)) - target_weights) * sum(end_of_day_values.values) * TRADING_COST)).values
             df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
                 returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
             trade = pd.Series(df.loc[date, 'values'] - prev_vals)
