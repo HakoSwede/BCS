@@ -108,7 +108,7 @@ def save_to_file(df_1, df_2, trades_df):
     trades_df.to_csv(path('trades.csv'))
 
 
-def make_images(df_1, df_2):
+def make_images(df_1, df_2, trades_df):
     """
     General function for plotting images of the dataframes created by the main code of the file.
 
@@ -202,6 +202,21 @@ def make_images(df_1, df_2):
     plt.gcf().clear()
     plt.close()
 
+    # TRADES PLOT
+    fig_trades, axes_trades = plt.subplots()
+
+    trades_df.cumsum().reindex(df_1.index, method='ffill').plot(
+        ax=axes_trades,
+        figsize=(12, 6),
+        title='Cumulative investment per ETF',
+        cmap='betterment'
+    )
+    axes_trades.set_xlim(df_1.index[0], df_1.index[-1])
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
+    plt.savefig(os.path.join(root, 'trades.png'))
+    plt.gcf().clear()
+    plt.close()
+
 
 def calculate_summary_statistics(df):
     annualized_returns = (df['values'].iloc[-1].sum() / STARTING_CASH) ** (
@@ -242,5 +257,5 @@ if __name__ == '__main__':
     rebalance_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
 
     save_to_file(buy_and_hold_df, rebalance_df, trades_df)
-    make_images(buy_and_hold_df, rebalance_df)
+    make_images(buy_and_hold_df, rebalance_df, trades_df)
 

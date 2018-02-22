@@ -26,7 +26,7 @@ rebalanced portfolio (graph + dataset):
   <!-- ![Allocations](https://i.imgur.com/EPxFrM2.png) -->
   ![Allocations](images/asset_allocations.png)
 * A list of rebalances, including amount rebalanced:
-  * TBD
+  * The dataset is avaiable in `datasets/trades.csv`
 * A small comparison of performance under rebalancing or not:
   * TBD
 * Any other results you want to present:
