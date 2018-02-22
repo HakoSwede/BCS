@@ -101,18 +101,16 @@ def generate_portfolios(returns, p, tolerance):
 
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
         end_of_day_values = rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
-        if current_drift(rebalance_df.shift(1).loc[date, 'allocations'].values) < tolerance:
-            # If we are within tolerance, we just set the current value of the portfolio to the portfolio value at the
-            # end of the day.
-            rebalance_df.loc[date, 'values'] = end_of_day_values
-        else:
+        if current_drift(rebalance_df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             rebalance_df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
-        # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
-        # dollars invested in each ETF
-        rebalance_df.loc[date, 'allocations'] = \
-            (rebalance_df.loc[date, 'values'].div(rebalance_df.loc[date, 'values'].sum())).values
+            rebalance_df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'] / returns.loc[date, 'cumulative'] * \
+                                                rebalance_df.loc[date, 'values']
+
+            # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
+            # dollars invested in each ETF
+            rebalance_df.loc[date:, 'allocations'] = (rebalance_df.loc[date:, 'values'].div(rebalance_df.loc[date:, 'values'].sum())).values
 
     rebalance_df['returns'] = rebalance_df['values'].sum(axis=1).pct_change(1)
 
