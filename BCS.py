@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 from functools import partial
+from math import ceil
 
 # Declaration of constants
 STARTING_CASH = 100_000
@@ -48,40 +49,47 @@ def minkowski_distance(arr_1, arr_2, p):
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
-def generate_sensitivity_plot():
-    min_p, max_p = 1, 10
-    min_tol, max_tol = 0.02, 0.2
-    for p in range(min_p, max_p + 1):
-        for tol in range(min_tol, max_tol):
-            pass
+def generate_sensitivity_plot(returns, df, target_weights):
+    min_p, max_p, step_p = 1, 10, 1
+    min_tol, max_tol, step_tol = 0.02, 0.2, 0.01
+    sharpe_df = pd.DataFrame(
+        data=np.zeros((ceil((max_p - min_p)/step_p), ceil((max_tol - min_tol)/step_tol))),
+        index=np.arange(min_p, max_p, step_p),
+        columns=np.arange(min_tol, max_tol, step_tol)
+    )
+    for i, p in enumerate(np.arange(min_p, max_p, step_p)):
+        for j, tol in enumerate(np.arange(min_tol, max_tol, step_tol)):
+            rebalanced = generate_rebalanced(returns, df, p, target_weights, tol)
+            _, _, sharpe = calculate_summary_statistics(rebalanced)
+            sharpe_df[i][j] = sharpe
+    print(sharpe_df)
 
-
-def generate_rebalanced(dates, returns, buy_and_hold_df, p, target_weights, tolerance):
+def generate_rebalanced(returns, df, p, target_weights, tolerance):
     # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our main portfolio of interest. Like the buy-and-hold portfolio, we initialize the
     # rebalanced portfolio using the target ETF portfolio, but unlike the former, we rebalance the portfolio whenever
     # the current allocation strays too far from our target.
     # The definition of 'too far' is given by the Minkowski distance function. See docstring for minkowski_distance
     # for more info.
+    df = df.copy()
+    dates = df.index
     current_drift = partial(minkowski_distance, arr_2=target_weights.values, p=p)
-    rebalance_df = buy_and_hold_df.copy()
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
-        end_of_day_values = rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
-        if current_drift(rebalance_df.shift(1).loc[date, 'allocations'].values) > tolerance:
+        end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
+        if current_drift(df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
-            rebalance_df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
-            rebalance_df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
-                returns.loc[date, 'cumulative']).mul(rebalance_df.loc[date, 'values'], axis=1).values
+            df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
+            df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
+                returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
 
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
-            rebalance_df.loc[date:, 'allocations'] = rebalance_df.loc[date:, 'values'].div(
-                rebalance_df.loc[date:, 'values'].sum(axis=1), axis=0).values
+            df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(df.loc[date:, 'values'].sum(axis=1), axis=0).values
 
-    rebalance_df['returns'] = rebalance_df['values'].sum(axis=1).pct_change(1)
+    df['returns'] = df['values'].sum(axis=1).pct_change(1)
 
-    return rebalance_df
+    return df
 
 
 def save_to_file(df_1, df_2):
@@ -189,6 +197,13 @@ def make_images(df_1, df_2):
     plt.close()
 
 
+def calculate_summary_statistics(df):
+    annualized_returns = (df['values'].iloc[-1].sum() / STARTING_CASH) ** (
+            60 * 60 * 24 * 365 / ((df.index[-1] - df.index[0]).total_seconds())) - 1
+    annualized_volatility = df['returns'].std() * (252 ** 0.5)
+    sharpe = annualized_returns / annualized_volatility
+    return annualized_returns, annualized_volatility, sharpe
+
 if __name__ == '__main__':
     max_drift = 0.05
     minkowski_p = 5
@@ -219,12 +234,8 @@ if __name__ == '__main__':
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
     buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
 
-    rebalance_df = generate_rebalanced(dates, returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
+    rebalance_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
 
     save_to_file(buy_and_hold_df, rebalance_df)
     make_images(buy_and_hold_df, rebalance_df)
 
-    annualized_returns = (rebalance_df['values'].iloc[-1].sum() / STARTING_CASH) ** (
-                60*60*24*365 / ((dates[-1] - dates[0]).total_seconds())) - 1
-    annualized_volatility = rebalance_df['returns'].std() * (252 ** 0.5)
-    sharpe = annualized_returns / annualized_volatility
