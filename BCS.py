@@ -11,6 +11,7 @@ from math import ceil
 
 # Declaration of constants
 STARTING_CASH = 100_000
+TRADING_COST = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
 BETTERMENT_BLUE = '#1F4AB4'
 BETTERMENT_GRAY = '#30363D'
 betterment_palette = [
@@ -84,7 +85,7 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             prev_vals = df.loc[date, 'values'].copy()
-            df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
+            df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values * (1 - TRADING_COST)
             df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
                 returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
             trade = pd.Series(df.loc[date, 'values'] - prev_vals)
