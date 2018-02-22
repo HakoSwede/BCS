@@ -142,7 +142,7 @@ def make_images(df_1, df_2, trades_df):
         kind='hist',
         bins=50,
         alpha=0.5,
-        title='Histogram of returns',
+        title='Frequency of returns',
         label='Buy and Hold',
         color=BETTERMENT_GRAY
     )
@@ -230,8 +230,8 @@ def calculate_summary_statistics(df):
 if __name__ == '__main__':
     max_drift = 0.05
     minkowski_p = 5
-    sns.set_style('whitegrid')
     cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_palette))
+    sns.set(style='whitegrid')
     returns_df = pd.read_csv(
         filepath_or_buffer='portfolio_returns.csv',
         index_col=0,
