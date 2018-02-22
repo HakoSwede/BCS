@@ -96,8 +96,7 @@ def generate_portfolios(returns, p, tolerance):
     # the current allocation strays too far from our target.
     # The definition of 'too far' is given by the Minkowski distance function. See docstring for minkowski_distance
     # for more info.
-    rebalance_df = pd.DataFrame(np.zeros_like(buy_and_hold_df),index=dates,columns=buy_and_hold_df.columns)
-    rebalance_df.iloc[0] = buy_and_hold_df.iloc[0]
+    rebalance_df = buy_and_hold_df.copy()
 
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
         end_of_day_values = rebalance_df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily']).values
@@ -105,17 +104,16 @@ def generate_portfolios(returns, p, tolerance):
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             rebalance_df.loc[date, 'values'] = (sum(end_of_day_values) * target_weights).values
-            rebalance_df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'] / returns.loc[date, 'cumulative'] * \
-                                                rebalance_df.loc[date, 'values']
+            rebalance_df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(returns.loc[date, 'cumulative']).mul(rebalance_df.loc[date, 'values'], axis=1).values
 
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
-            rebalance_df.loc[date:, 'allocations'] = (rebalance_df.loc[date:, 'values'].div(rebalance_df.loc[date:, 'values'].sum())).values
+            rebalance_df.loc[date:, 'allocations'] = rebalance_df.loc[date:, 'values'].div(rebalance_df.loc[date:, 'values'].sum(axis=1), axis=0).values
 
     rebalance_df['returns'] = rebalance_df['values'].sum(axis=1).pct_change(1)
 
-    #save_to_file(buy_and_hold_df, rebalance_df)
-    #make_images(buy_and_hold_df, rebalance_df)
+    save_to_file(buy_and_hold_df, rebalance_df)
+    make_images(buy_and_hold_df, rebalance_df)
 
     annualized_returns = (rebalance_df['values'].iloc[-1].sum() / STARTING_CASH) ** (31_536_000 / ((dates[-1] - dates[0]).total_seconds())) - 1
     annualized_volatility = rebalance_df['returns'].std() * (252 ** 0.5)
