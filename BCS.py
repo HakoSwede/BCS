@@ -92,7 +92,7 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
             df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(df.loc[date:, 'values'].sum(axis=1), axis=0).values
-    df['returns'] = df['values'].sum(axis=1).pct_change(1)
+    df['returns'] = df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     return df, trades
 
@@ -238,8 +238,7 @@ if __name__ == '__main__':
     )
     buy_and_hold_df[list(zip(['allocations'] * 8, tickers))] = \
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
-    buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
-
+    buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1).fillna(0)
     rebalance_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
 
     save_to_file(buy_and_hold_df, rebalance_df, trades_df)
