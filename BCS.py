@@ -75,6 +75,7 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
     df = df.copy()
     dates = df.index
     trades = pd.DataFrame(columns=tickers)
+    trades.index.name = 'Date'
     trades.loc[dates[0]] = df.loc[dates[0], 'values'].values
     current_drift = partial(minkowski_distance, arr_2=target_weights.values, p=p)
     for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
