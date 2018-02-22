@@ -93,17 +93,18 @@ def generate_rebalanced(returns, df, p, target_weights, tolerance):
             df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(df.loc[date:, 'values'].sum(axis=1), axis=0).values
     df['returns'] = df['values'].sum(axis=1).pct_change(1)
 
-    return df
+    return df, trades
 
 
-def save_to_file(df_1, df_2):
-    root = 'datasets'
-    df_1['values'].sum(axis=1).to_csv(os.path.join(root, 'values_buy_and_hold.csv'))
-    df_2['values'].sum(axis=1).to_csv(os.path.join(root, 'values_rebalance.csv'))
-    df_1['allocations'].to_csv(os.path.join(root, 'allocation_buy_and_hold.csv'))
-    df_2['allocations'].to_csv(os.path.join(root, 'allocation_rebalance.csv'))
-    df_1['returns'].to_csv(os.path.join(root, 'returns_buy_and_hold.csv'))
-    df_2['returns'].to_csv(os.path.join(root, 'returns_rebalance.csv'))
+def save_to_file(df_1, df_2, trades_df):
+    path = partial(os.path.join, 'datasets')
+    df_1['values'].sum(axis=1).to_csv(path('values_buy_and_hold.csv'))
+    df_2['values'].sum(axis=1).to_csv(path('values_rebalance.csv'))
+    df_1['allocations'].to_csv(path('allocation_buy_and_hold.csv'))
+    df_2['allocations'].to_csv(path('allocation_rebalance.csv'))
+    df_1['returns'].to_csv(path('returns_buy_and_hold.csv'))
+    df_2['returns'].to_csv(path('returns_rebalance.csv'))
+    trades_df.to_csv(path('trades.csv'))
 
 
 def make_images(df_1, df_2):
@@ -238,8 +239,8 @@ if __name__ == '__main__':
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
     buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1)
 
-    rebalance_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
+    rebalance_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
 
-    save_to_file(buy_and_hold_df, rebalance_df)
+    save_to_file(buy_and_hold_df, rebalance_df, trades_df)
     make_images(buy_and_hold_df, rebalance_df)
 
