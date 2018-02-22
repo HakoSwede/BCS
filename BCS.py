@@ -123,12 +123,13 @@ def generate_portfolios(returns, p, tolerance):
 
 
 def save_to_file(df_1, df_2):
-    df_1['values'].sum(axis=1).to_csv('values_buy_and_hold.csv')
-    df_2['values'].sum(axis=1).to_csv('values_rebalance.csv')
-    df_1['allocations'].to_csv('allocation_buy_and_hold.csv')
-    df_2['allocations'].to_csv('allocation_rebalance.csv')
-    df_1['returns'].to_csv('returns_buy_and_hold.csv')
-    df_2['returns'].to_csv('returns_rebalance.csv')
+    root = 'datasets'
+    df_1['values'].sum(axis=1).to_csv(os.path.join(root, 'values_buy_and_hold.csv'))
+    df_2['values'].sum(axis=1).to_csv(os.path.join(root, 'values_rebalance.csv'))
+    df_1['allocations'].to_csv(os.path.join(root, 'allocation_buy_and_hold.csv'))
+    df_2['allocations'].to_csv(os.path.join(root, 'allocation_rebalance.csv'))
+    df_1['returns'].to_csv(os.path.join(root, 'returns_buy_and_hold.csv'))
+    df_2['returns'].to_csv(os.path.join(root, 'returns_rebalance.csv'))
 
 
 def make_images(df_1, df_2):
@@ -139,6 +140,8 @@ def make_images(df_1, df_2):
     :param df_2: The second dataframe to plot. This is the portfolio.
     :return:
     """
+
+    root = 'images'
 
     # RETURNS PLOT
     df_1_ax = plt.subplot2grid((2, 2), (0, 0))
@@ -175,7 +178,7 @@ def make_images(df_1, df_2):
     )
     plt.legend()
     plt.tight_layout()
-    plt.savefig('daily_returns.png')
+    plt.savefig(os.path.join(root, 'daily_returns.png'))
     plt.gcf().clear()
 
     # ALLOCATIONS PLOT
@@ -199,7 +202,7 @@ def make_images(df_1, df_2):
     )
     axes_alloc[0].set_xlim(df_1.index[0], df_1.index[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig('asset_allocations.png', dpi=300)
+    plt.savefig(os.path.join(root, 'asset_allocations.png'), dpi=300)
     plt.gcf().clear()
 
     # PORTFOLIO VALUE PLOT
@@ -219,7 +222,7 @@ def make_images(df_1, df_2):
     )
     axes_values.set_xlim(df_1.index[0], df_1.index[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    plt.savefig('values.png')
+    plt.savefig(os.path.join(root, 'values.png'))
     plt.gcf().clear()
     plt.close()
 
