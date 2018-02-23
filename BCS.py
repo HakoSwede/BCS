@@ -51,8 +51,8 @@ def minkowski_distance(arr_1, arr_2, p):
 
 def generate_sensitivity_plot(returns, df, target):
     df = df.copy()
-    min_p, max_p, step_p = 1, 4, 1
-    min_tol, max_tol, step_tol = 0.02, 0.06, 0.01
+    min_p, max_p, step_p = 1, 10, 1
+    min_tol, max_tol, step_tol = 0.01, 0.2, 0.01
     sharpe_df = pd.DataFrame(
         columns=np.round(np.arange(min_tol, max_tol, step_tol), 2),
         index=np.arange(min_p, max_p, step_p),
@@ -63,15 +63,13 @@ def generate_sensitivity_plot(returns, df, target):
             rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
             _, _, sharpe = calculate_summary_statistics(rebalanced)
             sharpe_df.loc[p, tol] = sharpe
-            print(sharpe)
-    sharpe_buy_and_hold = calculate_summary_statistics(returns.cumprod)
 
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minkowski p'
     sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
 
-    min = np.min(sharpe_df.min())
-    mask = sharpe_df == min
+    min_sharpe = np.min(sharpe_df.min())
+    mask = sharpe_df == min_sharpe
 
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
@@ -81,6 +79,7 @@ def generate_sensitivity_plot(returns, df, target):
     plt.gcf().clear()
     plt.close()
 
+
 def generate_rebalanced(returns, df, p, target, tolerance):
     # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our main portfolio of interest. Like the buy-and-hold portfolio, we initialize the
@@ -89,20 +88,19 @@ def generate_rebalanced(returns, df, p, target, tolerance):
     # The definition of 'too far' is given by the Minkowski distance function. See docstring for minkowski_distance
     # for more info.
     df = df.copy()
-    dates = df.index
+    dates_index = df.index
     trades = pd.DataFrame(columns=tickers)
     trades.index.name = 'Date'
-    trades.loc[dates[0]] = df.loc[dates[0], 'values'].values
+    trades.loc[dates[0]] = df.loc[dates_index[0], 'values'].values
     current_drift = partial(minkowski_distance, arr_2=target.values, p=p)
-    for date in tqdm(dates[1:], desc='Calculating rebalanced portfolio'):  # TQDM is a library for progress bars - provides some nice visual feedback!
+    for date in tqdm(dates_index[1:], desc='Rebalancing'):
         end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])
         if current_drift(df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             previous_values = df.loc[date, 'values'].copy()
             position_value = sum(end_of_day_values.values) * target
-            trading_cost = abs(end_of_day_values.div(sum(end_of_day_values.values)) - target) * \
-                           sum(end_of_day_values.values) * COMMISSION
+            trading_cost = abs(end_of_day_values.div(sum(end_of_day_values.values)) - target) * sum(end_of_day_values.values) * COMMISSION
             df.loc[date, 'values'] = (position_value - trading_cost).values
             df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
                 returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
@@ -110,13 +108,14 @@ def generate_rebalanced(returns, df, p, target, tolerance):
             trades.loc[date] = trade
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
-            df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(df.loc[date:, 'values'].sum(axis=1), axis=0).values
+            df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(
+                df.loc[date:, 'values'].sum(axis=1), axis=0).values
     df['returns'] = df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     return df, trades
 
 
-def save_datasets(df_1, df_2, trades_df):
+def save_datasets(df_1, df_2, df_trades):
     path = partial(os.path.join, 'datasets')
     df_1['values'].sum(axis=1).to_csv(path('values_buy_and_hold.csv'))
     df_2['values'].sum(axis=1).to_csv(path('values_rebalance.csv'))
@@ -124,15 +123,16 @@ def save_datasets(df_1, df_2, trades_df):
     df_2['allocations'].to_csv(path('allocation_rebalance.csv'))
     df_1['returns'].to_csv(path('returns_buy_and_hold.csv'))
     df_2['returns'].to_csv(path('returns_rebalance.csv'))
-    trades_df.to_csv(path('trades.csv'))
+    df_trades.to_csv(path('trades.csv'))
 
 
-def save_images(df_1, df_2, trades_df):
+def save_images(df_1, df_2, df_trades):
     """
     General function for plotting images of the dataframes created by the main code of the file.
 
     :param df_1: The first dataframe to plot. This is the benchmark.
     :param df_2: The second dataframe to plot. This is the portfolio.
+    :param df_trades: The third dataframe to plot. This is the list of trades.
     :return:
     """
 
@@ -222,7 +222,7 @@ def save_images(df_1, df_2, trades_df):
     # TRADES PLOT
     fig_trades, axes_trades = plt.subplots()
 
-    trades_df.cumsum().reindex(df_1.index, method='ffill').plot(
+    df_trades.cumsum().reindex(df_1.index, method='ffill').plot(
         ax=axes_trades,
         figsize=(12, 6),
         title='Cumulative investment per ETF',
@@ -236,15 +236,17 @@ def save_images(df_1, df_2, trades_df):
 
 
 def calculate_summary_statistics(df):
+    df = df.copy()
     annualized_returns = (df['values'].iloc[-1].sum() / STARTING_CASH) ** (
             60 * 60 * 24 * 365 / ((df.index[-1] - df.index[0]).total_seconds())) - 1
     annualized_volatility = df['returns'].std() * (252 ** 0.5)
     sharpe = annualized_returns / annualized_volatility
     return annualized_returns, annualized_volatility, sharpe
 
+
 if __name__ == '__main__':
     max_drift = 0.05
-    minkowski_p = 6
+    minkowski_p = 5
     cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_palette))
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
@@ -277,4 +279,4 @@ if __name__ == '__main__':
     save_images(buy_and_hold_df, rebalance_df, trades_df)
     save_datasets(buy_and_hold_df, rebalance_df, trades_df)
 
-    generate_sensitivity_plot(returns_df, rebalance_df, target_weights)
+    generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
