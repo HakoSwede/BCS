@@ -31,12 +31,12 @@ class Strategy:
         self.dates = dates
         self.tickers = tickers
         self.target_weights = target_weights
-        columns = pd.MultiIndex.from_product([['values', 'returns', 'allocations'], tickers])
-        self.df = pd.DataFrame(index=dates, columns=columns, dtype=np.float64)
-        self.component_returns = component_returns.copy()
-        self.initialize_df(self.df)
+        columns = pd.MultiIndex.from_product([['values', 'allocations'], tickers])
+        self.df = pd.DataFrame(data=np.zeros((len(dates),len(columns))),index=dates, columns=columns, dtype=np.float64)
+        self.component_returns = component_returns
+        self.initialize_df()
 
-    def initialize_df(self,):
+    def initialize_df(self):
         self.df['values'] = (self.component_returns['cumulative'] * STARTING_CASH).mul(self.target_weights, axis=1).values
         self.df['allocations'] = (self.df['values'].div(self.df['values'].sum(axis=1), axis=0))
         self.df['returns'] = (self.df['values'].sum(axis=1)).pct_change(1).fillna(0)
@@ -177,20 +177,20 @@ def save_images(df_1, df_2, df_trades):
         title='Daily returns of rebalanced portfolio',
         color=BETTERMENT_BLUE
     )
-    sns.distplot(
-        a=df_1['returns'],
-        color=BETTERMENT_GRAY,
-        ax=hist_ax,
-        bins=50,
-        label='Buy and Hold'
-    )
-    sns.distplot(
-        a=df_2['returns'],
-        color=BETTERMENT_BLUE,
-        ax=hist_ax,
-        bins=50,
-        label='Rebalance'
-    )
+    # sns.distplot(
+    #     a=df_1['returns'],
+    #     #color=BETTERMENT_GRAY,
+    #     ax=hist_ax,
+    #     bins=50,
+    #     label='Buy and Hold'
+    # )
+    # sns.distplot(
+    #     a=df_2['returns'],
+    #     #color=BETTERMENT_BLUE,
+    #     ax=hist_ax,
+    #     bins=50,
+    #     label='Rebalance'
+    # )
     plt.title('Frequency of returns')
     plt.legend()
     plt.tight_layout()
