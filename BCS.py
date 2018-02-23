@@ -57,8 +57,8 @@ def generate_sensitivity_plot(returns, df, target):
         columns=np.round(np.arange(min_tol, max_tol, step_tol), 2),
         index=np.arange(min_p, max_p, step_p)
     )
-    for i, p in enumerate(tqdm(np.arange(min_p, max_p, step_p), desc='p values')):
-        for j, tol in enumerate(tqdm(np.arange(min_tol, max_tol, step_tol),desc='tolerances')):
+    for i, p in enumerate(tqdm(sharpe_df.index, desc='p values')):
+        for j, tol in enumerate(tqdm(sharpe_df.columns,desc='tolerances')):
             rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
             _, _, sharpe = calculate_summary_statistics(rebalanced)
             sharpe_df.loc[p, tol] = sharpe
@@ -66,12 +66,11 @@ def generate_sensitivity_plot(returns, df, target):
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minowski p'
 
-    min = np.min(df.min())
-    mask = df == min
+    min = np.min(sharpe_df.min())
+    mask = sharpe_df == min
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.heatmap(df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
-                mask=mask)
+    sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2, mask=mask)
     plt.tight_layout()
     plt.savefig(os.path.join('images', 'heatmap.png'))
     plt.gcf().clear()
@@ -270,4 +269,9 @@ if __name__ == '__main__':
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
     buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
-    generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
+    returns_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
+
+    save_images(buy_and_hold_df, returns_df, trades_df)
+    save_datasets(buy_and_hold_df, returns_df, trades_df)
+
+    #generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
