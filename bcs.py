@@ -44,15 +44,15 @@ class Strategy:
     def summary_stats(self):
         return calculate_summary_statistics(self.df)
 
-    def rebalance(self, date, target):
+    def rebalance(self, date):
         # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
         # which is why we still grow the portfolio by the daily returns.
         eod_values = self.df.shift(1).loc[date, 'values'].mul(1 + self.component_returns.loc[date, 'daily'])
         eod_portfolio_value = sum(eod_values.values)
 
         previous_values = self.df.loc[date, 'values'].copy()
-        position_value = eod_portfolio_value * target
-        trading_cost = abs(eod_values.div(eod_portfolio_value) - target) * eod_portfolio_value * COMMISSION
+        position_value = eod_portfolio_value * self.target_weights
+        trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * COMMISSION
         current_values = position_value - trading_cost
         self.df.loc[date, 'values'] = current_values.values
         future_values = self.component_returns.loc[date:, 'cumulative'].div(
@@ -102,39 +102,27 @@ def calculate_summary_statistics(df):
     return annualized_returns, annualized_volatility, sharpe
 
 
-def generate_rebalanced(returns, df, minkowski_p, target, max_drift):
+def generate_rebalanced(strategy, minkowski_p, target, max_drift):
     # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our main portfolio of interest. Like the buy-and-hold portfolio, we initialize the
     # rebalanced portfolio using the target ETF portfolio, but unlike the former, we rebalance the portfolio whenever
     # the current allocation strays too far from our target.
     # The definition of 'too far' is given by the Minkowski distance function. See docstring for minkowski_distance
     # for more info.
-    df = df.copy()
-    dates = df.index
-    tickers = df['values'].columns
+    df = strategy.df
+    dates = strategy.dates
+    tickers = strategy.tickers
     trades = pd.DataFrame(columns=tickers, dtype=np.float64)
     trades.index.name = 'Date'
     trades.loc[dates[0]] = df.loc[dates[0], 'values'].values  # First trade is purchasing target portfolio.
     current_drift = partial(minkowski_distance, arr_2=target.values, p=minkowski_p)  # Partially compile Minkowski distance
     for date in tqdm(dates[1:], desc='Rebalancing'):
-        eod_values = df.shift(1).loc[date, 'values'].mul(1 + returns.loc[date, 'daily'])
+        eod_values = df.shift(1).loc[date, 'values'].mul(1 + strategy.component_returns.loc[date, 'daily'])
         eod_portfolio_value = sum(eod_values.values)
         prev_day_allocation = df.shift(1).loc[date, 'allocations'].values
         if current_drift(prev_day_allocation) > max_drift:
-            # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
-            # which is why we still grow the portfolio by the daily returns.
-            previous_values = df.loc[date, 'values'].copy()
-            position_value = eod_portfolio_value * target
-            trading_cost = abs(eod_values.div(eod_portfolio_value) - target) * eod_portfolio_value * COMMISSION
-            current_values = position_value - trading_cost
-            df.loc[date, 'values'] = current_values.values
-            future_values = returns.loc[date:, 'cumulative'].div(returns.loc[date, 'cumulative']).mul(current_values,axis=1)
-            df.loc[date:, 'values'] = future_values.values
-            trade = pd.Series(current_values - previous_values)
+            trade = strategy.rebalance(date)
             trades.loc[date] = trade
-            # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
-            # dollars invested in each ETF
-            df.loc[date:, 'allocations'] = future_values.div(future_values.sum(axis=1), axis=0).values
     df['returns'] = df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     return df, trades
@@ -280,17 +268,9 @@ def run():
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
     buy_and_hold = Strategy(dates, tickers, returns_df, target_weights)
-    # buy_and_hold_df = pd.DataFrame(
-    #     data=(returns_df['cumulative'] * STARTING_CASH).mul(target_weights, axis=1).values,
-    #     index=dates,
-    #     columns=pd.MultiIndex.from_product([['values'], tickers]),
-    #     dtype=np.float64
-    # )
-    # buy_and_hold_df[list(zip(['allocations'] * 8, tickers))] = \
-    #     (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
-    # buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
-    rebalance_df, trades_df = generate_rebalanced(returns_df, buy_and_hold.df, minkowski_p, target_weights, max_drift)
+    rebalanced = Strategy(dates, tickers, returns_df, target_weights)
+    rebalance_df, trades_df = generate_rebalanced(rebalanced, minkowski_p, target_weights, max_drift)
 
     save_images(buy_and_hold.df, rebalance_df, trades_df)
     save_datasets(buy_and_hold.df, rebalance_df, trades_df)
