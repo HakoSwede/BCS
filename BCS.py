@@ -66,11 +66,12 @@ def generate_sensitivity_plot(returns, df, target):
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minowski p'
 
-    mask = np.zeros_like(sharpe_df)
-    mask[sharpe_df == sharpe_df.min()] = True
+    min = np.min(df.min())
+    mask = df == min
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.heatmap(df, linewidths=0.1, ax=ax, cmap="Blues", xticklabels=2, yticklabels=2, mask=mask)
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.heatmap(df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
+                mask=mask)
     plt.tight_layout()
     plt.savefig(os.path.join('images', 'heatmap.png'))
     plt.gcf().clear()
