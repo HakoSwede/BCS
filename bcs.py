@@ -69,6 +69,24 @@ class Strategy:
 
         return trade
 
+    def trade(self, minkowski_p, max_drift):
+        """
+            Main method to implement the specified trading strategy. The strategy will rebalance whenever the max_drift is less
+            than the allowed drift based on the Minkowski p-value and the specified target weights.
+            :param strategy: The strategy to trade
+            :param minkowski_p: The p-value for the Minkowski distance measure
+            :param max_drift: The max allowed percentage point drift from the strategies ideal weighting
+            :return: None
+            """
+        current_drift = partial(minkowski_distance, arr_2=self.target_weights, p=minkowski_p)
+        for date in tqdm(self.dates[1:], desc='Rebalancing'):  # TQDM is a progress bar library
+            # If the previous-day close allocation is out of tolerance..
+            if current_drift(self.df.shift(1).loc[date, 'allocations'].values) > max_drift:
+                # then rebalance the portfolio
+                trade = self.rebalance(date)
+                self.trades.loc[date] = trade
+        self.df['returns'] = self.df['values'].sum(axis=1).pct_change(1).fillna(0)
+
     def save_to_csv(self):
         df_trades = self.trades
         path = partial(os.path.join, 'datasets')
@@ -99,35 +117,17 @@ def minkowski_distance(arr_1, arr_2, p):
     :type p: float
     :return: The distance between arr_1 and arr_2 in L^p space
     """
-    if len(arr_1) != len(arr_2):
-        raise ValueError
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
-def calculate_summary_statistics(df):
-    total_return = df['values'].iloc[-1].sum() / STARTING_CASH
-    seconds_invested = (df.index[-1] - df.index[0]).total_seconds()
+def calculate_summary_statistics(strategy):
+    total_return = strategy.df['values'].iloc[-1].sum() / STARTING_CASH
+    seconds_invested = (strategy.df.index[-1] - strategy.df.index[0]).total_seconds()
     seconds_per_year = 60 * 60 * 24 * 365
     annualized_returns = total_return ** (seconds_per_year / seconds_invested) - 1
-    annualized_volatility = df['returns'].std() * (252 ** 0.5)
+    annualized_volatility = strategy.df['returns'].std() * (252 ** 0.5)
     sharpe = annualized_returns / annualized_volatility
     return annualized_returns, annualized_volatility, sharpe
-
-
-def generate_rebalanced(strategy, minkowski_p, target, max_drift):
-    # REBALANCED PORTFOLIO
-    # The rebalanced portfolio is our main portfolio of interest. Like the buy-and-hold portfolio, we initialize the
-    # rebalanced portfolio using the target ETF portfolio, but unlike the former, we rebalance the portfolio whenever
-    # the current allocation strays too far from our target.
-    # The definition of 'too far' is given by the Minkowski distance function. See docstring for minkowski_distance
-    # for more info.
-    current_drift = partial(minkowski_distance, arr_2=target.values, p=minkowski_p)  # Partially compile Minkowski distance
-    for date in tqdm(strategy.dates[1:], desc='Rebalancing'):
-        prev_day_allocation = strategy.df.shift(1).loc[date, 'allocations'].values
-        if current_drift(prev_day_allocation) > max_drift:
-            trade = strategy.rebalance(date)
-            strategy.trades.loc[date] = trade
-    strategy.df['returns'] = strategy.df['values'].sum(axis=1).pct_change(1).fillna(0)
 
 def save_images(strategy_1, strategy_2):
     """
@@ -266,7 +266,7 @@ def run():
     # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
     # allocation drifts too far from the target.
     rebalanced = Strategy('rebalanced', dates, tickers, returns_df, target_weights)
-    generate_rebalanced(rebalanced, minkowski_p, target_weights, max_drift)
+    rebalanced.trade(minkowski_p, max_drift)
 
     save_images(buy_and_hold, rebalanced)
     buy_and_hold.save_to_csv()
