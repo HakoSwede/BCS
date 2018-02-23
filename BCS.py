@@ -55,22 +55,24 @@ def generate_sensitivity_plot(returns, df, target):
     min_tol, max_tol, step_tol = 0.02, 0.2, 0.01
     sharpe_df = pd.DataFrame(
         columns=np.round(np.arange(min_tol, max_tol, step_tol), 2),
-        index=np.arange(min_p, max_p, step_p)
+        index=np.arange(min_p, max_p, step_p),
+        dtype=np.float64
     )
     for i, p in enumerate(tqdm(sharpe_df.index, desc='p values')):
-        for j, tol in enumerate(tqdm(sharpe_df.columns,desc='tolerances')):
+        for j, tol in enumerate(tqdm(sharpe_df.columns, desc='tolerances')):
             rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
             _, _, sharpe = calculate_summary_statistics(rebalanced)
-            sharpe_df.loc[p, tol] = sharpe
-    sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
+            sharpe_df.loc[p, tol] = float(sharpe)
     sharpe_df.columns.name = 'Threshold'
-    sharpe_df.index.name = 'Minowski p'
+    sharpe_df.index.name = 'Minkowski p'
+    sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
 
     min = np.min(sharpe_df.min())
     mask = sharpe_df == min
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2, mask=mask)
+    sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
+                mask=mask)
     plt.tight_layout()
     plt.savefig(os.path.join('images', 'heatmap.png'))
     plt.gcf().clear()
@@ -131,8 +133,6 @@ def save_images(df_1, df_2, trades_df):
     :return:
     """
 
-    root = 'images'
-
     # RETURNS PLOT
     df_1_ax = plt.subplot2grid((2, 2), (0, 0))
     df_2_ax = plt.subplot2grid((2, 2), (1, 0))
@@ -168,7 +168,7 @@ def save_images(df_1, df_2, trades_df):
     )
     plt.legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(root, 'daily_returns.png'))
+    plt.savefig(os.path.join('images', 'daily_returns.png'))
     plt.gcf().clear()
 
     # ALLOCATIONS PLOT
@@ -192,7 +192,7 @@ def save_images(df_1, df_2, trades_df):
     )
     axes_alloc[0].set_xlim(df_1.index[0], df_1.index[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig(os.path.join(root, 'asset_allocations.png'), dpi=300)
+    plt.savefig(os.path.join('images', 'asset_allocations.png'), dpi=300)
     plt.gcf().clear()
 
     # PORTFOLIO VALUE PLOT
@@ -212,7 +212,7 @@ def save_images(df_1, df_2, trades_df):
     )
     axes_values.set_xlim(df_1.index[0], df_1.index[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    plt.savefig(os.path.join(root, 'values.png'))
+    plt.savefig(os.path.join('images', 'values.png'))
     plt.gcf().clear()
     plt.close()
 
@@ -227,7 +227,7 @@ def save_images(df_1, df_2, trades_df):
     )
     axes_trades.set_xlim(df_1.index[0], df_1.index[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig(os.path.join(root, 'trades.png'))
+    plt.savefig(os.path.join('images', 'trades.png'))
     plt.gcf().clear()
     plt.close()
 
@@ -269,9 +269,9 @@ if __name__ == '__main__':
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
     buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
-    returns_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
+    rebalance_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
 
-    save_images(buy_and_hold_df, returns_df, trades_df)
-    save_datasets(buy_and_hold_df, returns_df, trades_df)
+    save_images(buy_and_hold_df, rebalance_df, trades_df)
+    save_datasets(buy_and_hold_df, rebalance_df, trades_df)
 
-    #generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
+    generate_sensitivity_plot(returns_df, rebalance_df, target_weights)
