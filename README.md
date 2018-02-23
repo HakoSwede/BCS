@@ -23,8 +23,8 @@ rebalanced portfolio (graph + dataset):
   viewed below:  
   ![Allocations](images/asset_allocations.png)
 * A list of rebalances, including amount rebalanced:
-  * The dataset is avaiable in `datasets/trades.csv`. A chart of the net flows between ETFs can be found in `images/trades.csv`. It can also be viewed below:
-  ![Trades](imeages/trades.png)
+  * The dataset is avaiable in `datasets/trades.csv`. A chart of the net flows between ETFs can be found in `images/trades.png`. It can also be viewed below:
+  ![Trades](images/trades.png)
 * A small comparison of performance under rebalancing or not:
   * TBD
 * Any other results you want to present:
