@@ -57,8 +57,8 @@ def generate_sensitivity_plot(returns, df, target):
         columns=np.round(np.arange(min_tol, max_tol, step_tol), 2),
         index=np.arange(min_p, max_p, step_p)
     )
-    for i, p in tqdm(enumerate(np.arange(min_p, max_p, step_p))):
-        for j, tol in enumerate(np.arange(min_tol, max_tol, step_tol)):
+    for i, p in enumerate(tqdm(np.arange(min_p, max_p, step_p), desc='p values')):
+        for j, tol in enumerate(tqdm(np.arange(min_tol, max_tol, step_tol),desc='tolerances')):
             rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
             _, _, sharpe = calculate_summary_statistics(rebalanced)
             sharpe_df.loc[p, tol] = sharpe
@@ -90,7 +90,7 @@ def generate_rebalanced(returns, df, p, target, tolerance):
     trades.index.name = 'Date'
     trades.loc[dates[0]] = df.loc[dates[0], 'values'].values
     current_drift = partial(minkowski_distance, arr_2=target.values, p=p)
-    for date in tqdm(dates[1:]):  # TQDM is a library for progress bars - provides some nice visual feedback!
+    for date in tqdm(dates[1:], desc='Calculating rebalanced portfolio'):  # TQDM is a library for progress bars - provides some nice visual feedback!
         end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])
         if current_drift(df.shift(1).loc[date, 'allocations'].values) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
@@ -270,7 +270,4 @@ if __name__ == '__main__':
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
     buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
-    rebalance_df, trades_df = generate_rebalanced(returns_df, buy_and_hold_df, minkowski_p, target_weights, max_drift)
-
-    save_datasets(buy_and_hold_df, rebalance_df, trades_df)
-    save_images(buy_and_hold_df, rebalance_df, trades_df)
+    generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
