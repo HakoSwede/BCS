@@ -1,5 +1,6 @@
 import os
 from functools import partial
+
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -85,14 +86,13 @@ def generate_rebalanced(returns, df, p, target, tolerance):
             trading_cost = abs(eod_values.div(eod_portfolio_value) - target) * eod_portfolio_value * COMMISSION
             current_values = position_value - trading_cost
             df.loc[date, 'values'] = current_values.values
-            df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
-                returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
+            future_values = returns.loc[date:, 'cumulative'].div(returns.loc[date, 'cumulative']).mul(current_values,axis=1)
+            df.loc[date:, 'values'] = future_values.values
             trade = pd.Series(current_values - previous_values)
             trades.loc[date] = trade
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
-            df.loc[date:, 'allocations'] = df.loc[date:, 'values'].div(
-                df.loc[date:, 'values'].sum(axis=1), axis=0).values
+            df.loc[date:, 'allocations'] = future_values.div(future_values.sum(axis=1), axis=0).values
     df['returns'] = df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     return df, trades
@@ -161,7 +161,7 @@ def save_images(df_1, df_2, df_trades):
     df_1['allocations'].plot(
         ax=axes_alloc[0],
         figsize=(12, 6),
-        title='Weight of portfolio assets of buy-and-hold portfolio',
+        title='weight of portfolio assets of buy-and-hold portfolio',
         kind='area',
         legend=False,
         ylim=(0, 1),
@@ -251,5 +251,3 @@ if __name__ == '__main__':
 
     save_images(buy_and_hold_df, rebalance_df, trades_df)
     save_datasets(buy_and_hold_df, rebalance_df, trades_df)
-
-    # generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)

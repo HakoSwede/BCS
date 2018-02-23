@@ -1,11 +1,13 @@
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
 
-from BCS import generate_rebalanced, calculate_summary_statistics, STARTING_CASH
+from bcs import generate_rebalanced, calculate_summary_statistics, STARTING_CASH
+
 
 def generate_sensitivity_plot(returns, df, target):
     df = df.copy()
