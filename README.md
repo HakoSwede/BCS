@@ -1,4 +1,4 @@
-# Betterment Case Study: Sebastian Rollen
+# BCS: Sebastian Rollen
 ---
 ## Deliverables
 * Daily portfolio returns, both as a graph and dataset:
