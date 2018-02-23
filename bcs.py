@@ -47,6 +47,8 @@ def minkowski_distance(arr_1, arr_2, p):
     :type p: float
     :return: The distance between arr_1 and arr_2 in L^p space
     """
+    if len(arr_1) != len(arr_2):
+        raise ValueError
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
