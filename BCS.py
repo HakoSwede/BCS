@@ -135,23 +135,21 @@ def save_images(df_1, df_2, df_trades):
         title='Daily returns of rebalanced portfolio',
         color=BETTERMENT_BLUE
     )
-    df_1['returns'].plot(
+    sns.distplot(
+        a=df_1['returns'],
+        color=BETTERMENT_GRAY,
         ax=hist_ax,
-        kind='hist',
         bins=50,
-        alpha=0.5,
-        title='Frequency of returns',
-        label='Buy and Hold',
-        color=BETTERMENT_GRAY
+        label='Buy and Hold'
     )
-    df_2['returns'].plot(
+    sns.distplot(
+        a=df_2['returns'],
+        color=BETTERMENT_BLUE,
         ax=hist_ax,
-        kind='hist',
         bins=50,
-        alpha=0.5,
-        label='Rebalance',
-        color=BETTERMENT_BLUE
+        label='Rebalance'
     )
+    plt.title('Frequency of returns')
     plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join('images', 'daily_returns.png'), dpi=300)
