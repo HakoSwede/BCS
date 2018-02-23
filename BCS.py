@@ -13,7 +13,7 @@ STARTING_CASH = 100_000
 COMMISSION = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
 BETTERMENT_BLUE = '#1F4AB4'
 BETTERMENT_GRAY = '#30363D'
-betterment_palette = [
+BETTERMENT_PALETTE = [
     '#79CCFF',  # SHY
     '#ADE7FF',  # TIP
     '#B5FFCB',  # VTI
@@ -49,35 +49,14 @@ def minkowski_distance(arr_1, arr_2, p):
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
-def generate_sensitivity_plot(returns, df, target):
-    df = df.copy()
-    min_p, max_p, step_p = 1, 10, 1
-    min_tol, max_tol, step_tol = 0.01, 0.2, 0.01
-    sharpe_df = pd.DataFrame(
-        columns=np.round(np.arange(min_tol, max_tol, step_tol), 2),
-        index=np.arange(min_p, max_p, step_p),
-        dtype=np.float64
-    )
-    for p in tqdm(sharpe_df.index, desc='p values'):
-        for tol in tqdm(sharpe_df.columns, desc='tolerances'):
-            rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
-            _, _, sharpe = calculate_summary_statistics(rebalanced)
-            sharpe_df.loc[p, tol] = sharpe
-
-    sharpe_df.columns.name = 'Threshold'
-    sharpe_df.index.name = 'Minkowski p'
-    sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
-
-    min_sharpe = np.min(sharpe_df.min())
-    mask = sharpe_df == min_sharpe
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
-                mask=mask)
-    plt.tight_layout()
-    plt.savefig(os.path.join('images', 'heatmap.png'))
-    plt.gcf().clear()
-    plt.close()
+def calculate_summary_statistics(df):
+    total_return = df['values'].iloc[-1].sum() / STARTING_CASH
+    seconds_invested = (df.index[-1] - df.index[0]).total_seconds()
+    seconds_per_year = 60 * 60 * 24 * 365
+    annualized_returns = total_return ** (seconds_per_year / seconds_invested) - 1
+    annualized_volatility = df['returns'].std() * (252 ** 0.5)
+    sharpe = annualized_returns / annualized_volatility
+    return annualized_returns, annualized_volatility, sharpe
 
 
 def generate_rebalanced(returns, df, p, target, tolerance):
@@ -89,22 +68,26 @@ def generate_rebalanced(returns, df, p, target, tolerance):
     # for more info.
     df = df.copy()
     dates_index = df.index
-    trades = pd.DataFrame(columns=tickers)
+    tickers = df['values'].columns
+    trades = pd.DataFrame(columns=tickers, dtype=np.float64)
     trades.index.name = 'Date'
-    trades.loc[dates[0]] = df.loc[dates_index[0], 'values'].values
-    current_drift = partial(minkowski_distance, arr_2=target.values, p=p)
+    trades.loc[dates_index[0]] = df.loc[dates_index[0], 'values'].values  # First trade is purchasing target portfolio.
+    current_drift = partial(minkowski_distance, arr_2=target.values, p=p)  # Partially compile Minkowski distance
     for date in tqdm(dates_index[1:], desc='Rebalancing'):
-        end_of_day_values = df.shift(1).loc[date, 'values'].mul(1 + returns_df.loc[date, 'daily'])
-        if current_drift(df.shift(1).loc[date, 'allocations'].values) > tolerance:
+        eod_values = df.shift(1).loc[date, 'values'].mul(1 + returns.loc[date, 'daily'])
+        eod_portfolio_value = sum(eod_values.values)
+        prev_day_allocation = df.shift(1).loc[date, 'allocations'].values
+        if current_drift(prev_day_allocation) > tolerance:
             # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
             # which is why we still grow the portfolio by the daily returns.
             previous_values = df.loc[date, 'values'].copy()
-            position_value = sum(end_of_day_values.values) * target
-            trading_cost = abs(end_of_day_values.div(sum(end_of_day_values.values)) - target) * sum(end_of_day_values.values) * COMMISSION
-            df.loc[date, 'values'] = (position_value - trading_cost).values
+            position_value = eod_portfolio_value * target
+            trading_cost = abs(eod_values.div(eod_portfolio_value) - target) * eod_portfolio_value * COMMISSION
+            current_values = position_value - trading_cost
+            df.loc[date, 'values'] = current_values.values
             df.loc[date:, 'values'] = returns.loc[date:, 'cumulative'].div(
                 returns.loc[date, 'cumulative']).mul(df.loc[date, 'values'], axis=1).values
-            trade = pd.Series(df.loc[date, 'values'] - previous_values)
+            trade = pd.Series(current_values - previous_values)
             trades.loc[date] = trade
             # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
             # dollars invested in each ETF
@@ -235,19 +218,10 @@ def save_images(df_1, df_2, df_trades):
     plt.close()
 
 
-def calculate_summary_statistics(df):
-    df = df.copy()
-    annualized_returns = (df['values'].iloc[-1].sum() / STARTING_CASH) ** (
-            60 * 60 * 24 * 365 / ((df.index[-1] - df.index[0]).total_seconds())) - 1
-    annualized_volatility = df['returns'].std() * (252 ** 0.5)
-    sharpe = annualized_returns / annualized_volatility
-    return annualized_returns, annualized_volatility, sharpe
-
-
 if __name__ == '__main__':
     max_drift = 0.05
     minkowski_p = 5
-    cm.register_cmap('betterment', cmap=colors.ListedColormap(betterment_palette))
+    cm.register_cmap('betterment', cmap=colors.ListedColormap(BETTERMENT_PALETTE))
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
         filepath_or_buffer='portfolio_returns.csv',
@@ -268,7 +242,8 @@ if __name__ == '__main__':
     buy_and_hold_df = pd.DataFrame(
         data=(returns_df['cumulative'] * STARTING_CASH).mul(target_weights, axis=1).values,
         index=dates,
-        columns=pd.MultiIndex.from_product([['values'], tickers])
+        columns=pd.MultiIndex.from_product([['values'], tickers]),
+        dtype=np.float64
     )
     buy_and_hold_df[list(zip(['allocations'] * 8, tickers))] = \
         (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
@@ -279,4 +254,4 @@ if __name__ == '__main__':
     save_images(buy_and_hold_df, rebalance_df, trades_df)
     save_datasets(buy_and_hold_df, rebalance_df, trades_df)
 
-    generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
+    # generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
