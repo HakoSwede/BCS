@@ -51,18 +51,21 @@ def minkowski_distance(arr_1, arr_2, p):
 
 def generate_sensitivity_plot(returns, df, target):
     df = df.copy()
-    min_p, max_p, step_p = 1, 10, 1
-    min_tol, max_tol, step_tol = 0.02, 0.2, 0.01
+    min_p, max_p, step_p = 1, 4, 1
+    min_tol, max_tol, step_tol = 0.02, 0.06, 0.01
     sharpe_df = pd.DataFrame(
         columns=np.round(np.arange(min_tol, max_tol, step_tol), 2),
         index=np.arange(min_p, max_p, step_p),
         dtype=np.float64
     )
-    for i, p in enumerate(tqdm(sharpe_df.index, desc='p values')):
-        for j, tol in enumerate(tqdm(sharpe_df.columns, desc='tolerances')):
+    for p in tqdm(sharpe_df.index, desc='p values'):
+        for tol in tqdm(sharpe_df.columns, desc='tolerances'):
             rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
             _, _, sharpe = calculate_summary_statistics(rebalanced)
-            sharpe_df.loc[p, tol] = float(sharpe)
+            sharpe_df.loc[p, tol] = sharpe
+            print(sharpe)
+    sharpe_buy_and_hold = calculate_summary_statistics(returns.cumprod)
+
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minkowski p'
     sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
@@ -168,7 +171,7 @@ def save_images(df_1, df_2, trades_df):
     )
     plt.legend()
     plt.tight_layout()
-    plt.savefig(os.path.join('images', 'daily_returns.png'))
+    plt.savefig(os.path.join('images', 'daily_returns.png'), dpi=300)
     plt.gcf().clear()
 
     # ALLOCATIONS PLOT
@@ -191,7 +194,7 @@ def save_images(df_1, df_2, trades_df):
         colormap=cm.get_cmap('betterment')
     )
     axes_alloc[0].set_xlim(df_1.index[0], df_1.index[-1])
-    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.3), ncol=8)
     plt.savefig(os.path.join('images', 'asset_allocations.png'), dpi=300)
     plt.gcf().clear()
 
@@ -211,8 +214,8 @@ def save_images(df_1, df_2, trades_df):
         color=BETTERMENT_BLUE
     )
     axes_values.set_xlim(df_1.index[0], df_1.index[-1])
-    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
-    plt.savefig(os.path.join('images', 'values.png'))
+    plt.legend(loc=9, bbox_to_anchor=(0.5, -0.15), ncol=2)
+    plt.savefig(os.path.join('images', 'values.png'), dpi=300)
     plt.gcf().clear()
     plt.close()
 
@@ -227,7 +230,7 @@ def save_images(df_1, df_2, trades_df):
     )
     axes_trades.set_xlim(df_1.index[0], df_1.index[-1])
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
-    plt.savefig(os.path.join('images', 'trades.png'))
+    plt.savefig(os.path.join('images', 'trades.png'), dpi=300)
     plt.gcf().clear()
     plt.close()
 
