@@ -117,15 +117,13 @@ def generate_rebalanced(strategy, minkowski_p, target, max_drift):
     trades.loc[dates[0]] = df.loc[dates[0], 'values'].values  # First trade is purchasing target portfolio.
     current_drift = partial(minkowski_distance, arr_2=target.values, p=minkowski_p)  # Partially compile Minkowski distance
     for date in tqdm(dates[1:], desc='Rebalancing'):
-        eod_values = df.shift(1).loc[date, 'values'].mul(1 + strategy.component_returns.loc[date, 'daily'])
-        eod_portfolio_value = sum(eod_values.values)
         prev_day_allocation = df.shift(1).loc[date, 'allocations'].values
         if current_drift(prev_day_allocation) > max_drift:
             trade = strategy.rebalance(date)
             trades.loc[date] = trade
     df['returns'] = df['values'].sum(axis=1).pct_change(1).fillna(0)
 
-    return df, trades
+    return trades
 
 
 def save_datasets(df_1, df_2, df_trades):
@@ -269,11 +267,14 @@ def run():
     # the target ETF portfolio and then holds it for the period.
     buy_and_hold = Strategy(dates, tickers, returns_df, target_weights)
 
+    # REBALANCED PORTFOLIO
+    # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
+    # allocation drifts too far from the target.
     rebalanced = Strategy(dates, tickers, returns_df, target_weights)
-    rebalance_df, trades_df = generate_rebalanced(rebalanced, minkowski_p, target_weights, max_drift)
+    trades_df = generate_rebalanced(rebalanced, minkowski_p, target_weights, max_drift)
 
-    save_images(buy_and_hold.df, rebalance_df, trades_df)
-    save_datasets(buy_and_hold.df, rebalance_df, trades_df)
+    save_images(buy_and_hold.df, rebalanced.df, trades_df)
+    save_datasets(buy_and_hold.df, rebalanced.df, trades_df)
 
 if __name__ == '__main__':
     run()

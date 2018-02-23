@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from bcs import generate_rebalanced, calculate_summary_statistics, STARTING_CASH
+from bcs import generate_rebalanced, calculate_summary_statistics, Strategy
 
 
 def generate_sensitivity_plot(returns, df, target):
@@ -60,14 +60,6 @@ if __name__ == '__main__':
     # BUY AND HOLD PORTFOLIO
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
-    buy_and_hold_df = pd.DataFrame(
-        data=(returns_df['cumulative'] * STARTING_CASH).mul(target_weights, axis=1).values,
-        index=dates,
-        columns=pd.MultiIndex.from_product([['values'], tickers]),
-        dtype=np.float64
-    )
-    buy_and_hold_df[list(zip(['allocations'] * 8, tickers))] = \
-        (buy_and_hold_df['values'].div(buy_and_hold_df['values'].sum(axis=1), axis=0))
-    buy_and_hold_df['returns'] = (buy_and_hold_df['values'].sum(axis=1)).pct_change(1).fillna(0)
+    buy_and_hold = Strategy(dates, tickers, returns_df, target_weights)
 
     generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
