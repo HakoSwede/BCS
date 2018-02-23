@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from bcs import generate_rebalanced, calculate_summary_statistics, Strategy
+from bcs import calculate_summary_statistics, Strategy
 
 
 def generate_sensitivity_plot(returns, df, target):

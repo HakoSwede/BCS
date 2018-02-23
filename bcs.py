@@ -10,8 +10,6 @@ import seaborn as sns
 from tqdm import tqdm
 
 # Declaration of constants
-STARTING_CASH = 100_000
-COMMISSION = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
 BETTERMENT_BLUE = '#1F4AB4'
 BETTERMENT_GRAY = '#30363D'
 BETTERMENT_PALETTE = [
@@ -27,11 +25,13 @@ BETTERMENT_PALETTE = [
 
 
 class Strategy:
-    def __init__(self, name, dates, tickers, etf_returns, target_weights):
+    def __init__(self, name, dates, tickers, etf_returns, target_weights, starting_cash, commission):
         self.name = name
         self.dates = dates
         self.tickers = tickers
         self.target_weights = target_weights
+        self.starting_cash = starting_cash
+        self.commission = commission
         columns = pd.MultiIndex.from_product([['values', 'allocations'], tickers])
         self.df = pd.DataFrame(data=np.zeros((len(dates),len(columns))),index=dates, columns=columns, dtype=np.float64)
         self.etf_returns = etf_returns
@@ -40,7 +40,7 @@ class Strategy:
         self.trades.loc[self.dates[0]] = self.df.loc[self.dates[0], 'values'].values  # First trade is purchasing target portfolio.
 
     def initialize_df(self):
-        self.df['values'] = (self.etf_returns['cumulative'] * STARTING_CASH).mul(self.target_weights, axis=1).values
+        self.df['values'] = (self.etf_returns['cumulative'] * self.starting_cash).mul(self.target_weights, axis=1).values
         self.df['allocations'] = (self.df['values'].div(self.df['values'].sum(axis=1), axis=0))
         self.df['returns'] = (self.df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
@@ -56,7 +56,7 @@ class Strategy:
 
         previous_values = self.df.loc[date, 'values'].copy()
         position_value = eod_portfolio_value * self.target_weights
-        trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * COMMISSION
+        trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * self.commission
         current_values = position_value - trading_cost
         self.df.loc[date, 'values'] = current_values.values
         future_values = self.etf_returns.loc[date:, 'cumulative'].div(
@@ -88,7 +88,6 @@ class Strategy:
         self.df['returns'] = self.df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     def save_to_csv(self):
-        df_trades = self.trades
         path = partial(os.path.join, 'datasets')
         self.df['values'].sum(axis=1).to_csv(path('{0}_values.csv'.format(self.name)))
         self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(self.name)))
@@ -121,7 +120,7 @@ def minkowski_distance(arr_1, arr_2, p):
 
 
 def calculate_summary_statistics(strategy):
-    total_return = strategy.df['values'].iloc[-1].sum() / STARTING_CASH
+    total_return = strategy.df['values'].iloc[-1].sum() / strategy.starting_cash
     seconds_invested = (strategy.df.index[-1] - strategy.df.index[0]).total_seconds()
     seconds_per_year = 60 * 60 * 24 * 365
     annualized_returns = total_return ** (seconds_per_year / seconds_invested) - 1
@@ -133,9 +132,8 @@ def save_images(strategy_1, strategy_2):
     """
     General function for plotting images of the dataframes created by the main code of the file.
 
-    :param df_1: The first dataframe to plot. This is the benchmark.
-    :param df_2: The second dataframe to plot. This is the portfolio.
-    :param df_trades: The third dataframe to plot. This is the list of trades.
+    :param strategy_!: The first strategy to plot and compare. This is the benchmark.
+    :param strategy_2: The second strategy to plot and compare. This is the portfolio.
     :return:
     """
 
@@ -240,8 +238,10 @@ def save_images(strategy_1, strategy_2):
 
 
 def run():
-    max_drift = 0.05
-    minkowski_p = 5
+    max_drift = 0.05  # Maximum distance from optimal portfolio
+    minkowski_p = 5  # Minkowski-p to determine which distance measure to use
+    starting_cash = 100_000
+    commission = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
     cm.register_cmap('betterment', cmap=colors.ListedColormap(BETTERMENT_PALETTE))
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
@@ -260,17 +260,18 @@ def run():
     # BUY AND HOLD PORTFOLIO
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
-    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights)
+    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
 
     # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
     # allocation drifts too far from the target.
-    rebalanced = Strategy('rebalanced', dates, tickers, returns_df, target_weights)
+    rebalanced = Strategy('rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
     rebalanced.trade(minkowski_p, max_drift)
 
     save_images(buy_and_hold, rebalanced)
     buy_and_hold.save_to_csv()
     rebalanced.save_to_csv()
+
 
 if __name__ == '__main__':
     run()
