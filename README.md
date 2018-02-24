@@ -21,7 +21,7 @@
   `images/trades.png`. It can also be viewed below:
   ![Trades](images/trades.png)
 * A small comparison of performance under rebalancing or not:
-  * TBD
+  * A dataset of summary statistics has been caluclated and included. The dataset is available in `datasets/stats.csv`.
 * Any other results you want to present:
   * TBD
 ---
@@ -88,7 +88,16 @@ trades would also harm the portfolio due to commissions and slippage.
 the threshold and not be triggered. This could cause the portfolio to stay in a detrimental allocation for much
 longer than a portfolio with a lower Minkowski p-value.
 
-In order to pick which Minkowski p-value to use for the trigger function, I made a small script to loop through 100
-different combinations of threshold and p-values. The results can be seen below:
+In order to pick which Minkowski p-value to use for the trigger function, I made a small script to loop through 
+different combinations of threshold and p-values. The results can be seen as a heatmap below:
 
-#### INSERT IMAGE HERE!
+![Heatmap](images/heatmap.png)
+
+Each cell in the heatmap gives the excess Sharpe ratio, in basis points, of a rebalancing portfolio over the Sharpe
+ratio of the buy-and-hold-portfolio. Every rebalancing portfolio is constructed with a specific Minkowski p-value
+and rebalancing threshold, which are given by the row and columns, respectively. For some portfolios, no trades other 
+than the initial purchase was made, as the threshold for rebalancing was never reached. These portfolios are 
+represented as blank spaces in the heatmap.  
+In general, we find that the Sharpe ratio of a portfolio usually increases as the Minkowski p-value or threshold
+increases. However, at some point these parameters become too 'loose', and the portfolio never rebalances. 
+The overa

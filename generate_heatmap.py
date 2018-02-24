@@ -9,7 +9,7 @@ from tqdm import tqdm
 from bcs import Strategy
 
 
-def generate_sensitivity_plot(returns_df, target_weights, starting_cash, commission):
+def generate_heatmap(returns_df, target_weights, starting_cash, commission):
     dates = returns_df.index
     tickers = returns_df['daily'].columns
     min_p, max_p, step_p = 1, 10, 1
@@ -23,15 +23,18 @@ def generate_sensitivity_plot(returns_df, target_weights, starting_cash, commiss
         for tol in tqdm(sharpe_df.columns, desc='tolerances'):
             rebalanced = Strategy('Rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
             rebalanced.trade(p, tol)
-            _, _, sharpe = rebalanced.summary_stats()
-            sharpe_df.loc[p, tol] = sharpe
+            stats = rebalanced.summary_stats()
+            sharpe_df.loc[p, tol] = stats[4]
 
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minkowski p'
+
+    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
+    buy_and_hold_sharpe = buy_and_hold.summary_stats()[4]
+    sharpe_df -= round(buy_and_hold_sharpe, 3)
     sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
 
-    min_sharpe = np.min(sharpe_df.min())
-    mask = sharpe_df == min_sharpe
+    mask = sharpe_df == 0
 
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
@@ -56,7 +59,7 @@ def run(starting_cash=100_000, commission=0.005):
     target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
     returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
 
-    generate_sensitivity_plot(returns_df, target_weights, starting_cash, commission)
+    generate_heatmap(returns_df, target_weights, starting_cash, commission)
 
 
 if __name__ == '__main__':

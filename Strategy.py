@@ -99,7 +99,7 @@ class Strategy:
         total_return = capital_gains / self.starting_cash
         seconds_invested = (self.df.index[-1] - self.df.index[0]).total_seconds()
         seconds_per_year = 60 * 60 * 24 * 365
-        annualized_returns = total_return ** (seconds_per_year / seconds_invested)
+        annualized_returns = (total_return + 1) ** (seconds_per_year / seconds_invested) - 1
         annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
         sharpe = annualized_returns / annualized_volatility
         num_trades = self.trades.shape[0]
