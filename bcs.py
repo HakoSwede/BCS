@@ -91,7 +91,7 @@ def save_images(strategy_1, strategy_2):
     plt.close()
 
 
-def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
+def run(max_drift=0.06, minkowski_p=4, starting_cash=100000, commission=0.005):
     """Runs a backtest on a rebalancing strategy and compares it to the buy-and-hold portfolio. The results are saved
     into datasets in the `datasets` folder, and to charts in the `images` folder.
 
@@ -157,4 +157,4 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
 
 
 if __name__ == '__main__':
-    run(max_drift=0.05, minkowski_p=4, starting_cash=100_000, commission=0.005)
+    run(max_drift=0.06, minkowski_p=4, starting_cash=100_000, commission=0.005)
