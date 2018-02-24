@@ -93,6 +93,7 @@ class Strategy:
         allocation and the target allocation. It can also accept additional arguments, given in **kwargs. The trigger
         function has to output a float, which can then be compared to the trigger_point. If the trigger_point is
         exceeded, the portfolio will rebalance.
+
         :param trigger_function: A trigger function that accepts two arrays and additional kwargs, and outputs a float
         :param trigger_point: A float determining at what point the portfolio is to be rebalanced
         :param trigger_function_kwargs: Additional keyword arguments for the trigger function
@@ -110,14 +111,14 @@ class Strategy:
     def summary_stats(self):
         """
         Return a series containing the summary statistics for a strategy
-        :return: A pandas series containing capital gains, total return,
-        annualized return, annualized volatility, sharpe ratio, and number of trades.
+
+        :return: A pandas series containing capital gains, total return, annualized return, annualized volatility, \
+            sharpe ratio, and number of trades.
         """
         capital_gains = self.df['values'].iloc[-1].sum() - self.starting_cash
         total_return = capital_gains / self.starting_cash
-        seconds_invested = (self.df.index[-1] - self.df.index[0]).total_seconds()
-        seconds_per_year = 60 * 60 * 24 * 365
-        annualized_returns = (total_return + 1) ** (seconds_per_year / seconds_invested) - 1
+        days_invested = (self.df.index[-1] - self.df.index[0]).days
+        annualized_returns = (total_return + 1) ** (365 / days_invested) - 1
         annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
         sharpe = annualized_returns / annualized_volatility
         num_trades = self.trades.shape[0]
@@ -130,8 +131,10 @@ class Strategy:
 
     def save_to_csv(self):
         """
+        Save the strategy to 4 separate CSVs. The CSVs contain data on the strategy values, allocations, returns and
+        trades. The CSVs are saved in the datasets folder.
 
-        :return:
+        :return: None
         """
         path = partial(os.path.join, 'datasets')
         self.df['values'].sum(axis=1).to_csv(path('{0}_values.csv'.format(self.name)))

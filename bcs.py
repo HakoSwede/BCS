@@ -192,6 +192,7 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
     )
     stats['Capital Gains'] = stats['Capital Gains'].round(2)
     stats.iloc[:, 1:5] = stats.iloc[:, 1:5].round(3)
+    stats.index.name = 'Strategy'
     stats.to_csv(os.path.join('datasets', 'stats.csv'))
 
     save_images(buy_and_hold, rebalanced)
