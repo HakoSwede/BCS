@@ -6,11 +6,12 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from bcs import calculate_summary_statistics, Strategy
+from bcs import Strategy
 
 
-def generate_sensitivity_plot(returns, df, target):
-    df = df.copy()
+def generate_sensitivity_plot(returns_df, target_weights, starting_cash, commission):
+    dates = returns_df.first_valid_index
+    tickers = returns_df['daily'].columns
     min_p, max_p, step_p = 1, 10, 1
     min_tol, max_tol, step_tol = 0.01, 0.2, 0.01
     sharpe_df = pd.DataFrame(
@@ -20,8 +21,9 @@ def generate_sensitivity_plot(returns, df, target):
     )
     for p in tqdm(sharpe_df.index, desc='p values'):
         for tol in tqdm(sharpe_df.columns, desc='tolerances'):
-            rebalanced, _ = generate_rebalanced(returns, df, p, target, tol)
-            _, _, sharpe = calculate_summary_statistics(rebalanced)
+            rebalanced = Strategy('Rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
+            rebalanced.trade(p, tol)
+            _, _, sharpe = rebalanced.summary_stats()
             sharpe_df.loc[p, tol] = sharpe
 
     sharpe_df.columns.name = 'Threshold'
@@ -40,10 +42,11 @@ def generate_sensitivity_plot(returns, df, target):
     plt.close()
 
 
-if __name__ == '__main__':
-    max_drift = 0.05
-    minkowski_p = 5
+def run():
     sns.set(style='whitegrid')
+    starting_cash = 100_000
+    commission = 0.005
+
     returns_df = pd.read_csv(
         filepath_or_buffer='portfolio_returns.csv',
         index_col=0,
@@ -54,12 +57,16 @@ if __name__ == '__main__':
     returns_df.index.name = 'Date'
     returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
     target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
-
     returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
 
     # BUY AND HOLD PORTFOLIO
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
-    buy_and_hold = Strategy(dates, tickers, returns_df, target_weights)
+    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
 
-    generate_sensitivity_plot(returns_df, buy_and_hold_df, target_weights)
+    generate_sensitivity_plot(returns_df, target_weights, starting_cash, commission)
+
+
+if __name__ == '__main__':
+    run()
+

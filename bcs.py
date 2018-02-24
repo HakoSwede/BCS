@@ -5,9 +5,10 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
+
 import pandas as pd
 import seaborn as sns
-from tqdm import tqdm
 
 # Declaration of constants
 BETTERMENT_BLUE = '#1F4AB4'
@@ -46,7 +47,13 @@ class Strategy:
 
 
     def summary_stats(self):
-        return calculate_summary_statistics(self.df)
+        total_return = self.df['values'].iloc[-1].sum() / self.starting_cash
+        seconds_invested = (self.df.index[-1] - self.df.index[0]).total_seconds()
+        seconds_per_year = 60 * 60 * 24 * 365
+        annualized_returns = total_return ** (seconds_per_year / seconds_invested) - 1
+        annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
+        sharpe = annualized_returns / annualized_volatility
+        return annualized_returns, annualized_volatility, sharpe
 
     def rebalance(self, date):
         # If we are not within tolerance, we rebalance. Rebalancing is done at the end of the trading day,
@@ -79,7 +86,7 @@ class Strategy:
             :return: None
             """
         current_drift = partial(minkowski_distance, arr_2=self.target_weights, p=minkowski_p)
-        for date in tqdm(self.dates[1:], desc='Rebalancing'):  # TQDM is a progress bar library
+        for date in self.dates[1:]:
             # If the previous-day close allocation is out of tolerance..
             if current_drift(self.df.shift(1).loc[date, 'allocations'].values) > max_drift:
                 # then rebalance the portfolio
@@ -93,8 +100,6 @@ class Strategy:
         self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(self.name)))
         self.df['returns'].to_csv(path('{0}_returns.csv'.format(self.name)))
         self.trades.to_csv(path('{0}_trades.csv'.format(self.name)))
-
-
 
 def minkowski_distance(arr_1, arr_2, p):
     """
@@ -119,15 +124,6 @@ def minkowski_distance(arr_1, arr_2, p):
     """
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
-
-def calculate_summary_statistics(strategy):
-    total_return = strategy.df['values'].iloc[-1].sum() / strategy.starting_cash
-    seconds_invested = (strategy.df.index[-1] - strategy.df.index[0]).total_seconds()
-    seconds_per_year = 60 * 60 * 24 * 365
-    annualized_returns = total_return ** (seconds_per_year / seconds_invested) - 1
-    annualized_volatility = strategy.df['returns'].std() * (252 ** 0.5)
-    sharpe = annualized_returns / annualized_volatility
-    return annualized_returns, annualized_volatility, sharpe
 
 def save_images(strategy_1, strategy_2):
     """
