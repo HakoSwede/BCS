@@ -3,6 +3,8 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import matplotlib.axes
+import matplotlib.colors
 import seaborn as sns
 
 import trading_context
@@ -48,7 +50,7 @@ class Strategy:
         :return: None
         """
         df['values'] = (self.tc.instrument_returns['cumulative'] *
-                        self.tc.starting_cash).mul(self.target_weights, axis=1).values  * (1 - self.tc.commission)
+                        self.tc.starting_cash).mul(self.target_weights, axis=1).values * (1 - self.tc.commission)
         df['allocations'] = self.df['values'].div(df['values'].sum(axis=1), axis=0)
         df['returns'] = (df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
@@ -132,13 +134,22 @@ class Strategy:
         :return: None
         """
         path = partial(os.path.join, 'datasets')
-        save_name = self.name.lower().replace(' ','_')
+        save_name = self.name.lower().replace(' ', '_')
         self.df['values'].sum(axis=1).to_csv(path('{0}_values.csv'.format(save_name)))
         self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(save_name)))
         self.df['returns'].to_csv(path('{0}_returns.csv'.format(save_name)))
         self.trades.to_csv(path('{0}_trades.csv'.format(save_name)))
 
     def returns_chart(self, ax, color):
+        """
+        Produces a line chart of the daily returns.
+
+        :param ax: The Matplotlib axes on which to plot the chart.
+        :type ax: matplotlib.axes.Axes
+        :param color: The color of the line
+        :type color: string
+        :return: None
+        """
         self.df['returns'].plot(
             ax=ax,
             figsize=(12, 6),
@@ -148,6 +159,15 @@ class Strategy:
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
 
     def returns_distribution_chart(self, ax, color):
+        """
+        Produces a Seaborn distplot of the daily returns.
+
+        :param ax: The Matplotlib axes on which to plot the chart.
+        :type ax: matplotlib.axes.Axes
+        :param color: The color of the distplot
+        :type color: string
+        :return: None
+        """
         sns.distplot(
             a=self.df['returns'],
             color=color,
@@ -157,6 +177,15 @@ class Strategy:
         )
 
     def asset_allocations_chart(self, ax, cm):
+        """
+        Produces an area chart of the asset allocation of the Strategy
+
+        :param ax: The Matplotlib axes on which to plot the chart.
+        :type ax: matplotlib.axes.Axes
+        :param cm: The colormap for the areas
+        :type cm: matplotlib.colors.Colormap
+        :return: None
+        """
         self.df['allocations'].plot(
             ax=ax,
             figsize=(12, 6),
@@ -169,6 +198,15 @@ class Strategy:
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
 
     def value_chart(self, ax, color):
+        """
+        Produces a line chart of the value of the Strategy
+
+        :param ax: The Matplotlib axes on which to plot the chart.
+        :type ax: matplotlib.axes.Axes
+        :param color: The color of the line
+        :type color: string
+        :return: None
+        """
         self.df['values'].sum(axis=1).plot(
             ax=ax,
             figsize=(12, 6),
@@ -179,6 +217,15 @@ class Strategy:
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
 
     def trades_chart(self, ax, cm):
+        """
+        Produces a line chart of the cumulative flows to each instrument of the Strategy
+
+        :param ax: The Matplotlib axes on which to plot the chart.
+        :type ax: matplotlib.axes.Axes
+        :param cm: The colormap for the lines
+        :type cm: matplotlib.colors.Colormap
+        :return: None
+        """
         self.trades.cumsum().reindex(self.tc.dates, method='ffill').plot(
             ax=ax,
             figsize=(12, 6),
