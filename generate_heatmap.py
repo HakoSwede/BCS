@@ -6,13 +6,12 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from Strategy import Strategy
+from strategy import Strategy
 from bcs import minkowski_distance
+from trading_context import TradingContext
 
 
-def generate_heatmap(returns_df, target_weights, starting_cash, commission):
-    dates = returns_df.index
-    tickers = returns_df['daily'].columns
+def generate_heatmap(returns_df, target_weights, tc):
     min_p, max_p, step_p = 1, 10, 1
     min_tol, max_tol, step_tol = 0.01, 0.2, 0.01
     sharpe_df = pd.DataFrame(
@@ -22,7 +21,7 @@ def generate_heatmap(returns_df, target_weights, starting_cash, commission):
     )
     for p in tqdm(sharpe_df.index, desc='p values'):
         for tol in tqdm(sharpe_df.columns, desc='tolerances'):
-            rebalanced = Strategy('Rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
+            rebalanced = Strategy('Rebalanced', target_weights, tc)
             rebalanced.trade(trigger_function=minkowski_distance, trigger_point=tol, p=p)
             stats = rebalanced.summary_stats()
             sharpe_df.loc[p, tol] = stats['Sharpe Ratio']
@@ -30,7 +29,7 @@ def generate_heatmap(returns_df, target_weights, starting_cash, commission):
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minkowski p'
 
-    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
+    buy_and_hold = Strategy('buy_and_hold', target_weights, tc)
     buy_and_hold_sharpe = buy_and_hold.summary_stats()['Sharpe Ratio']
     sharpe_df -= buy_and_hold_sharpe
     mask = sharpe_df == 0
@@ -51,19 +50,25 @@ def generate_heatmap(returns_df, target_weights, starting_cash, commission):
 
 def run(starting_cash=100_000, commission=0.005):
     sns.set(style='whitegrid')
-
     returns_df = pd.read_csv(
         filepath_or_buffer='portfolio_returns.csv',
         index_col=0,
         parse_dates=True
     )
-    tickers = returns_df.columns
     returns_df.index.name = 'Date'
-    returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
-    target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
-    returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
 
-    generate_heatmap(returns_df, target_weights, starting_cash, commission)
+    tc = TradingContext(
+        dates=returns_df.index,
+        tickers=returns_df.columns,
+        instrument_returns=returns_df,
+        starting_cash=starting_cash,
+        commission=commission
+    )
+    returns_df.columns = pd.MultiIndex.from_product([['daily'], tc.tickers])
+    returns_df[list(zip(['cumulative'] * 8, tc.tickers))] = (returns_df['daily'] + 1).cumprod()
+    tc.instrument_returns = returns_df
+    target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tc.tickers)
+    generate_heatmap(returns_df, target_weights, tc)
 
 
 if __name__ == '__main__':

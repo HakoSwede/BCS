@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from Strategy import Strategy
+from strategy import Strategy
+from trading_context import TradingContext
 from betterment_colors import BETTERMENT_BLUE, BETTERMENT_GRAY, BETTERMENT_PALETTE
 
 
@@ -161,26 +162,32 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
         index_col=0,
         parse_dates=True
     )
-    tickers = returns_df.columns
-    dates = returns_df.index
     returns_df.index.name = 'Date'
-    returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
+
+    tc = TradingContext(
+        dates=returns_df.index,
+        tickers=returns_df.columns,
+        instrument_returns=returns_df,
+        starting_cash=starting_cash,
+        commission=commission
+    )
+    returns_df.columns = pd.MultiIndex.from_product([['daily'], tc.tickers])
+    returns_df[list(zip(['cumulative'] * 8, tc.tickers))] = (returns_df['daily'] + 1).cumprod()
+    tc.instrument_returns=returns_df
+
     target_weights = pd.Series(
         data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05],
-        index=tickers
+        index=tc.tickers
     )
-
-    returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
-
     # BUY AND HOLD PORTFOLIO
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
-    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
+    buy_and_hold = Strategy('buy_and_hold', target_weights,tc)
 
     # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
     # allocation drifts too far from the target.
-    rebalanced = Strategy('rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
+    rebalanced = Strategy('rebalanced',target_weights, tc)
     rebalanced.trade(trigger_function=minkowski_distance, trigger_point=max_drift, p=minkowski_p)
 
     # SUMMARY STATISTICS

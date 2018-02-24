@@ -15,38 +15,26 @@ class Strategy:
 
     :param name: Name of the strategy.
     :type name: string
-    :param dates: A datetime index of the dates for which the strategy will be backtested
-    :type dates: pandas.DatetimeIndex
-    :param tickers: A list of the ticker symbols of the traded instruments
-    :type tickers: list
-    :param instrument_returns: A dataframe containing the daily and cumulative returns of the traded instruments
-    :type instrument_returns: pandas.DataFrame
     :param target_weights: A series containing the target weighting of the instruments. Also the initial weights
     :type target_weights: pandas.Series
-    :param starting_cash: The amount of cash to which the strategy has access
-    :type starting_cash: float
-    :param commission: The proportion of total value paid in fees during a rebalance
-    :type commission: float
+    :param tc:
+    :type tc: TradingContext
     """
 
-    def __init__(self, name, dates, tickers, instrument_returns, target_weights, starting_cash, commission):
+    def __init__(self, name, target_weights, tc):
         self.name = name
-        self.dates = dates
-        self.tickers = tickers
         self.target_weights = target_weights
-        self.starting_cash = starting_cash
-        self.commission = commission
+        self.tc = tc
         # The strategy stores its values, returns and allocations internally as a dataframe
         self.df = pd.DataFrame(
-            index=dates,
-            columns=pd.MultiIndex.from_product([['values', 'allocations'], tickers]),
+            index=self.tc.dates,
+            columns=pd.MultiIndex.from_product([['values', 'allocations'], tc.tickers]),
             dtype=np.float64
         )
-        self.instrument_returns = instrument_returns
         self._initialize_df(self.df)
-        self.trades = pd.DataFrame(columns=self.tickers, dtype=np.float64)
+        self.trades = pd.DataFrame(columns=self.tc.tickers, dtype=np.float64)
         # The first trade corresponds to buying the target weight of each instrument
-        self.trades.loc[self.dates[0]] = self.df.loc[self.dates[0], 'values'].values
+        self.trades.loc[self.tc.dates[0]] = self.df.loc[self.tc.dates[0], 'values'].values
 
     def _initialize_df(self, df):
         """
@@ -55,8 +43,8 @@ class Strategy:
 
         :return: None
         """
-        df['values'] = (self.instrument_returns['cumulative'] *
-                        self.starting_cash).mul(self.target_weights, axis=1).values
+        df['values'] = (self.tc.instrument_returns['cumulative'] *
+                        self.tc.starting_cash).mul(self.target_weights, axis=1).values
         df['allocations'] = self.df['values'].div(df['values'].sum(axis=1), axis=0)
         df['returns'] = (df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
@@ -68,17 +56,17 @@ class Strategy:
         :return:
         """
 
-        eod_values = self.df.shift(1).loc[date, 'values'].mul(1 + self.instrument_returns.loc[date, 'daily'])
+        eod_values = self.df.shift(1).loc[date, 'values'].mul(1 + self.tc.instrument_returns.loc[date, 'daily'])
         eod_portfolio_value = sum(eod_values.values)
 
         previous_values = self.df.loc[date, 'values'].copy()
         position_value = eod_portfolio_value * self.target_weights
         trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * \
-                       self.commission
+                       self.tc.commission
         current_values = position_value - trading_cost
         self.df.loc[date, 'values'] = current_values.values
-        future_values = self.instrument_returns.loc[date:, 'cumulative'].div(
-            self.instrument_returns.loc[date, 'cumulative']).mul(current_values, axis=1)
+        future_values = self.tc.instrument_returns.loc[date:, 'cumulative'].div(
+            self.tc.instrument_returns.loc[date, 'cumulative']).mul(current_values, axis=1)
         self.df.loc[date:, 'values'] = future_values.values
         trade = pd.Series(current_values - previous_values)
         # Once we have calculated the end-of-day value of the portfolio, we set the allocation by looking at the
@@ -99,7 +87,7 @@ class Strategy:
         :param trigger_function_kwargs: Additional keyword arguments for the trigger function
         :return: None
         """
-        for date in self.dates[1:]:
+        for date in self.tc.dates[1:]:
             # If the previous-day close allocation is out of tolerance..
             if trigger_function(self.df.shift(1).loc[date, 'allocations'].values, self.target_weights,
                                 **trigger_function_kwargs) > trigger_point:
@@ -115,8 +103,8 @@ class Strategy:
         :return: A pandas series containing capital gains, total return, annualized return, annualized volatility, \
             sharpe ratio, and number of trades.
         """
-        capital_gains = self.df['values'].iloc[-1].sum() - self.starting_cash
-        total_return = capital_gains / self.starting_cash
+        capital_gains = self.df['values'].iloc[-1].sum() - self.tc.starting_cash
+        total_return = capital_gains / self.tc.starting_cash
         days_invested = (self.df.index[-1] - self.df.index[0]).days
         annualized_returns = (total_return + 1) ** (365 / days_invested) - 1
         annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
