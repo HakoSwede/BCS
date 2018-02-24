@@ -13,9 +13,12 @@ class Strategy:
     def __init__(self, name, dates, tickers, etf_returns, target_weights, starting_cash, commission):
         """
 
-        :param name:
-        :param dates:
-        :param tickers:
+        :param name: Name of the strategy.
+        :type name: string
+        :param dates: A datetime index of the dates for which the strategy will be backtested
+        :type dates: pd.DatetimeIndex
+        :param tickers: A
+        :type tickers: list
         :param etf_returns:
         :param target_weights:
         :param starting_cash:
@@ -60,7 +63,8 @@ class Strategy:
 
         previous_values = self.df.loc[date, 'values'].copy()
         position_value = eod_portfolio_value * self.target_weights
-        trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * self.commission
+        trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * \
+                       self.commission
         current_values = position_value - trading_cost
         self.df.loc[date, 'values'] = current_values.values
         future_values = self.etf_returns.loc[date:, 'cumulative'].div(
@@ -75,12 +79,12 @@ class Strategy:
 
     def trade(self, minkowski_p, max_drift):
         """
-            Main method to implement the specified trading strategy. The strategy will rebalance whenever the max_drift
-            is less than the allowed drift based on the Minkowski p-value and the specified target weights.
-            :param minkowski_p: The p-value for the Minkowski distance measure
-            :param max_drift: The max allowed percentage point drift from the strategies ideal weighting
-            :return: None
-            """
+        Main method to implement the specified trading strategy. The strategy will rebalance whenever the max_drift
+        is less than the allowed drift based on the Minkowski p-value and the specified target weights.
+        :param minkowski_p: The p-value for the Minkowski distance measure
+        :param max_drift: The max allowed percentage point drift from the strategies ideal weighting
+        :return: None
+        """
         current_drift = partial(minkowski_distance, arr_2=self.target_weights, p=minkowski_p)
         for date in self.dates[1:]:
             # If the previous-day close allocation is out of tolerance..

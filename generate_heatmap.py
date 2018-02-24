@@ -31,10 +31,13 @@ def generate_heatmap(returns_df, target_weights, starting_cash, commission):
 
     buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
     buy_and_hold_sharpe = buy_and_hold.summary_stats()[4]
-    sharpe_df -= round(buy_and_hold_sharpe, 3)
+    sharpe_df -= buy_and_hold_sharpe
+    mask = sharpe_df == 0
+    sharpe_df = sharpe_df.round(3)
+
     sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
 
-    mask = sharpe_df == 0
+
 
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
