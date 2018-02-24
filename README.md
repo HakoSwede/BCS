@@ -21,7 +21,7 @@
   `images/trades.png`. It can also be viewed below:
   ![Trades](images/trades.png)
 * A small comparison of performance under rebalancing or not:
-  * A dataset of summary statistics has been caluclated and included. The dataset is available in `datasets/stats.csv`.
+  * A dataset of summary statistics has been calculated and included. The dataset is available in `datasets/stats.csv`.
 * Any other results you want to present:
   * TBD
 ---
@@ -74,7 +74,7 @@ As p approaches zero, we get increasingly close to the Hamming distance function
 ![Hamming distance](equations/hamming.png)
 
 With the Hamming distance, we penalize any deviation from the target both equally and harshly. This is one extreme of
-the Minkowski distance. The otherextreme is reached as p approaches infinity, the Chebyshev distance:
+the Minkowski distance. The other extreme is reached as p approaches infinity, the Chebyshev distance:
 
 ![Chebyshev distance](equations/chebyshev.png)
 

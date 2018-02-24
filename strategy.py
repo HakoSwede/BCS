@@ -59,7 +59,6 @@ class Strategy:
         :param date: The date at which the strategy is to be rebalanced.
         :type date: pandas.Timestamp
         :return: A pandas series containing the values that were rebalanced for each traded instrument
-        :type return: pandas.Series
         """
         eod_values = self.df.shift(1).loc[date, 'values'].mul(1 + self.tc.instrument_returns.loc[date, 'daily'])
         eod_portfolio_value = sum(eod_values.values)
@@ -67,7 +66,7 @@ class Strategy:
         previous_values = self.df.loc[date, 'values'].copy()
         position_value = self.target_weights.mul(eod_portfolio_value)
         trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * \
-                       self.tc.commission
+            self.tc.commission
         current_values = position_value - trading_cost
         self.df.loc[date, 'values'] = current_values.values
         future_values = self.tc.instrument_returns.loc[date:, 'cumulative'].div(
@@ -106,7 +105,6 @@ class Strategy:
 
         :return: A pandas series containing capital gains, total return, annualized return, annualized volatility, \
             sharpe ratio, and number of trades.
-        :type return: pandas.Series
         """
         capital_gains = self.df['values'].iloc[-1].sum() - self.tc.starting_cash
         total_return = capital_gains / self.tc.starting_cash

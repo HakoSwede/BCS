@@ -135,7 +135,7 @@ def run(max_drift=0.06, minkowski_p=4, starting_cash=100000, commission=0.005):
     # allocation drifts too far from the target.
     rebalanced = Strategy('Rebalanced', target_weights, tc)
 
-    # We give the rebalanced portfolio the Minkoski distance as its trigger function, and the max_drift as its
+    # We give the rebalanced portfolio the Minkowski distance as its trigger function, and the max_drift as its
     # trigger point. The trade method then generates the portfolio returns over the trading period.
     rebalanced.trade(trigger_function=minkowski_distance, trigger_point=max_drift, p=minkowski_p)
 

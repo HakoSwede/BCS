@@ -12,7 +12,7 @@ from trading_context import TradingContext
 
 
 def excess_sharpe_df(p_range, tol_range, target_weights, tc):
-    """Creates a dataframe of the excess Sharpe for each rebalancing stategy over the buy-and-hold portfolio.
+    """Creates a dataframe of the excess Sharpe for each rebalancing strategy over the buy-and-hold portfolio.
 
     :param p_range: A tuple containing the minimum, maximum and step for the Minkowski p-value
     :type p_range: tuple
@@ -55,16 +55,12 @@ def excess_sharpe_df(p_range, tol_range, target_weights, tc):
     return sharpe_df
 
 
-def run(p_range=(1, 10, 1), tol_range=(0.01, 0.2, 0.01), starting_cash=100_000, commission=0.005):
+def run(starting_cash=100_000, commission=0.005):
     """Create a range of Strategies, each with different parameters for the Minkowski p-value and rebalancing
     tolerance. The Sharpe ratio of each portfolio is then subtracted by the Sharpe ratio of the buy-and-hold
     portfolio to find the excess Sharpe ratio. These ratios are then saved to `heatmap.csv` and a heatmap of the ratios
     are produced to `heatmap.png`.
 
-    :param p_range: A tuple containing the minimum, maximum and step for the Minkowski p-value
-    :type p_range: tuple
-    :param tol_range: A tuple containing the minimum, maximum and step for the rebalancing tolerance
-    :type tol_range: tuple
     :param starting_cash: The amount of cash to which the strategy has access
     :type starting_cash: float
     :param commission: The proportion of total value paid in fees during a rebalance
@@ -88,6 +84,8 @@ def run(p_range=(1, 10, 1), tol_range=(0.01, 0.2, 0.01), starting_cash=100_000, 
     )
 
     target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tc.tickers)
+    p_range = 1, 10, 1
+    tol_range = 0.01, 0.2, 0.01
     sharpe_df = excess_sharpe_df(p_range, tol_range, target_weights, tc)
 
     sharpe_df.to_csv(os.path.join('datasets', 'heatmap.csv'))
@@ -105,6 +103,4 @@ def run(p_range=(1, 10, 1), tol_range=(0.01, 0.2, 0.01), starting_cash=100_000, 
 
 
 if __name__ == '__main__':
-    p_range = 1, 10, 1
-    tol_range = 0.01, 0.2, 0.01
-    run(p_range, tol_range, starting_cash=100_000, commission=0.005)
+    run(starting_cash=100_000, commission=0.005)
