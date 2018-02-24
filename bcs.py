@@ -10,6 +10,33 @@ from Strategy import Strategy
 from betterment_colors import BETTERMENT_BLUE, BETTERMENT_GRAY, BETTERMENT_PALETTE
 
 
+def minkowski_distance(arr_1, arr_2, p):
+    """
+    An implementation of the metric for the Lebesgue spaces. The Minkowski distance generalizes to many
+    well-known metrics for specific choices of p. For example:
+
+    p = 1: Manhattan Distance
+
+    p = 2: Euclidian distance
+
+    p -> 0: Hamming distance
+
+    p -> infinity: Chebyshev distance
+
+    For a given p, the function will return the distance between the two points at arr_1 and arr_2 in L^p space
+
+    :param arr_1: The location of the first point
+    :type arr_1: array-like
+    :param arr_2: The location of the second point
+    :type arr_2: array-like
+    :param p: The parameter specifying which p-norm will be used
+    :type p: float
+    :return: The distance between arr_1 and arr_2 in L^p space
+    """
+    return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
+
+
+
 def save_images(strategy_1, strategy_2):
     """
     General function for plotting images of the dataframes created by the main code of the file.
@@ -154,7 +181,7 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
     # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
     # allocation drifts too far from the target.
     rebalanced = Strategy('rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
-    rebalanced.trade(minkowski_p, max_drift)
+    rebalanced.trade(trigger_function=minkowski_distance, trigger_point=max_drift, p=minkowski_p)
 
 
     # SUMMARY STATISTICS

@@ -6,7 +6,8 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from bcs import Strategy
+from Strategy import Strategy
+from bcs import minkowski_distance
 
 
 def generate_heatmap(returns_df, target_weights, starting_cash, commission):
@@ -22,7 +23,7 @@ def generate_heatmap(returns_df, target_weights, starting_cash, commission):
     for p in tqdm(sharpe_df.index, desc='p values'):
         for tol in tqdm(sharpe_df.columns, desc='tolerances'):
             rebalanced = Strategy('Rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
-            rebalanced.trade(p, tol)
+            rebalanced.trade(trigger_function=minkowski_distance, trigger_point=tol, p=p)
             stats = rebalanced.summary_stats()
             sharpe_df.loc[p, tol] = stats[4]
 

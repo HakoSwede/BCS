@@ -87,18 +87,21 @@ class Strategy:
 
         return trade
 
-    def trade(self, minkowski_p, max_drift):
+    def trade(self, trigger_function, trigger_point, **trigger_function_kwargs):
         """
-        Main method to implement the specified trading strategy. The strategy will rebalance whenever the max_drift
-        is less than the allowed drift based on the Minkowski p-value and the specified target weights.
-        :param minkowski_p: The p-value for the Minkowski distance measure
-        :param max_drift: The max allowed percentage point drift from the strategies ideal weighting
+        Main function to implement trading strategy. The trigger_function has to accept two arrays, the current
+        allocation and the target allocation. It can also accept additional arguments, given in **kwargs. The trigger
+        function has to output a float, which can then be compared to the trigger_point. If the trigger_point is
+        exceeded, the portfolio will rebalance.
+        :param trigger_function: A trigger function that accepts two arrays and additional kwargs, and outputs a float
+        :param trigger_point: A float determining at what point the portfolio is to be rebalanced
+        :param trigger_function_kwargs: Additional keyword arguments for the trigger function
         :return: None
         """
-        current_drift = partial(minkowski_distance, arr_2=self.target_weights, p=minkowski_p)
         for date in self.dates[1:]:
             # If the previous-day close allocation is out of tolerance..
-            if current_drift(self.df.shift(1).loc[date, 'allocations'].values) > max_drift:
+            if trigger_function(self.df.shift(1).loc[date, 'allocations'].values, self.target_weights,
+                                **trigger_function_kwargs) > trigger_point:
                 # then rebalance the portfolio
                 trade = self.rebalance(date)
                 self.trades.loc[date] = trade
@@ -131,27 +134,3 @@ class Strategy:
         self.trades.to_csv(path('{0}_trades.csv'.format(self.name)))
 
 
-def minkowski_distance(arr_1, arr_2, p):
-    """
-    An implementation of the metric for the Lebesgue spaces. The Minkowski distance generalizes to many
-    well-known metrics for specific choices of p. For example:
-
-    p = 1: Manhattan Distance
-
-    p = 2: Euclidian distance
-
-    p -> 0: Hamming distance
-
-    p -> infinity: Chebyshev distance
-
-    For a given p, the function will return the distance between the two points at arr_1 and arr_2 in L^p space
-
-    :param arr_1: The location of the first point
-    :type arr_1: array-like
-    :param arr_2: The location of the second point
-    :type arr_2: array-like
-    :param p: The parameter specifying which p-norm will be used
-    :type p: float
-    :return: The distance between arr_1 and arr_2 in L^p space
-    """
-    return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
