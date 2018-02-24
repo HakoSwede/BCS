@@ -211,7 +211,7 @@ class Strategy:
             ax=ax,
             figsize=(12, 6),
             title='Portfolio values',
-            label='Value of buy-and-hold strategy'.format(name=self.name),
+            label='Value of {name} strategy'.format(name=self.name),
             color=color
         )
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
