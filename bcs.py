@@ -95,6 +95,7 @@ class Strategy:
         self.trades.to_csv(path('{0}_trades.csv'.format(self.name)))
 
 
+
 def minkowski_distance(arr_1, arr_2, p):
     """
     An implementation of the metric for the Lebesgue spaces. The Minkowski distance generalizes to many
