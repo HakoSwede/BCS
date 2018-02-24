@@ -2,22 +2,22 @@
 ---
 ## Deliverables
 * Daily portfolio returns, both as a graph and dataset:
-  * The dataset is available for the buy-and-hold portfolio in `datasets/returns_buy_and_hold.csv` and for the
-  rebalanced portfolio in `datasets/returns_rebalance.csv`.
+  * The dataset is available for the buy-and-hold portfolio in `datasets/buy_and_hold_returns.csv` and for the
+  rebalanced portfolio in `datasets/rebalanced_returns.csv`.
   * The graph is available in `images/daily_returns.png`. It can also be viewed below:
   ![returns](images/daily_returns.png)
 * Daily portfolio values, both as a graph and dataset:
-  * The dataset is available for the buy-and-hold portfolio in `datasets/values_buy_and_hold.csv` and for the
-  rebalanced portfolio in `datasets/values_rebalance.csv`.
+  * The dataset is available for the buy-and-hold portfolio in `datasets/buy_and_hold_values.csv` and for the
+  rebalanced portfolio in `datasets/rebalanced_values.csv`.
   * The graph is available in `images/values.png`. It can also be viewed below:  
   ![Values](images/values.png)
 * Daily asset allocations for both the 'no rebalancing' case, and your rebalanced portfolio (graph + dataset):
-  * The dataset is available for the buy-and-hold portfolio in `datasets/allocations_buy_and_hold.csv` and for the
-  rebalanced portfolio in `datasets/allocations_rebalance.csv`.
+  * The dataset is available for the buy-and-hold portfolio in `datasets/buy_and_hold_allocations.csv` and for the
+  rebalanced portfolio in `datasets/rebalanced_allocations.csv`.
   * The graph is available in `images/asset_allocations.png`. It can also be viewed below:
   ![Allocations](images/asset_allocations.png)
 * A list of rebalances, including amount rebalanced:
-  * The dataset is avaiable in `datasets/trades.csv`. A chart of the net flows between ETFs can be found in
+  * The dataset is available in `datasets/rebalanced_trades.csv`. A chart of the net flows between ETFs can be found in
   `images/trades.png`. It can also be viewed below:
   ![Trades](images/trades.png)
 * A small comparison of performance under rebalancing or not:

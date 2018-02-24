@@ -29,6 +29,7 @@ class TradingContext:
 
     def _add_cumulative_returns(self, instrument_returns):
         """Adds cumulative returns to the instrument_returns dataframe
+
         :param instrument_returns: Dataframe containing the daily returns of the instruments.
         :return: None
         """

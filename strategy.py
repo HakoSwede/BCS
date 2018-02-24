@@ -2,10 +2,10 @@ import os
 from functools import partial
 
 import matplotlib.colors
-from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.ticker import FuncFormatter
 
 import trading_context
 
@@ -102,7 +102,7 @@ class Strategy:
         self.df['returns'] = self.df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     def summary_stats(self):
-        """Return a series containing the summary statistics for a strategy
+        """Return a series containing the summary statistics for a strategy.
 
         :return: A pandas series containing capital gains, total return, annualized return, annualized volatility, \
             sharpe ratio, and number of trades.
@@ -124,7 +124,7 @@ class Strategy:
 
     def save_to_csv(self):
         """Save the strategy to 4 separate CSVs. The CSVs contain data on the strategy values, allocations, returns and
-        trades. The CSVs are saved in the datasets folder.
+        trades. The CSVs are saved in the `datasets` folder.
 
         :return: None
         """
@@ -170,7 +170,7 @@ class Strategy:
         )
 
     def asset_allocations_chart(self, ax, cm):
-        """Produces an area chart of the asset allocation of the Strategy
+        """Produces an area chart of the asset allocation of the Strategy.
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -192,7 +192,7 @@ class Strategy:
         ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
     def value_chart(self, ax, color):
-        """Produces a line chart of the value of the Strategy
+        """Produces a line chart of the value of the Strategy.
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -211,7 +211,7 @@ class Strategy:
         ax.get_yaxis().set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ',')))
 
     def trades_chart(self, ax, cm):
-        """Produces a line chart of the cumulative flows to each instrument of the Strategy
+        """Produces a line chart of the cumulative flows to each instrument of the Strategy.
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes

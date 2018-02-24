@@ -42,7 +42,7 @@ def save_images(strategy_1, strategy_2):
     General function for plotting charts of two trading strategies. Charts produce include a stacked area chart of
     the asset allocation, a line chart for the daily returns of each trading strategy including a histogram,
     a line chart showing the net flows of cash between the instruments of the strategy, and a line chart
-    showing the total returns of the two strategies. The charts are saved in the 'images' directory.
+    showing the total returns of the two strategies. The charts are saved in the `images` directory.
 
     :param strategy_1: The first strategy to plot and compare. This is the benchmark.
     :type strategy_1: Strategy
@@ -92,7 +92,8 @@ def save_images(strategy_1, strategy_2):
 
 
 def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
-    """
+    """Runs a backtest on a rebalancing strategy and compares it to the buy-and-hold portfolio. The results are saved
+    into datasets in the `datasets` folder, and to charts in the `images` folder.
 
     :param max_drift: Our max allowed drift from the target portfolio, in percentage points.
     :type max_drift: float
