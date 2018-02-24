@@ -101,7 +101,6 @@ def save_images(strategy_1, strategy_2):
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.15), ncol=2)
     plt.savefig(os.path.join('images', 'values.png'), dpi=300)
     plt.gcf().clear()
-    plt.close()
 
     # TRADES PLOT
     fig_trades, axes_trades = plt.subplots()
@@ -119,15 +118,15 @@ def save_images(strategy_1, strategy_2):
     plt.close()
 
 
-def run():
+def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
     """
 
-    :return:
+    :param max_drift: Our max allowed drift from the target portfolio, in percentage points.
+    :param minkowski_p: The p-parameter for the Minkowski distance function
+    :param starting_cash: The initial cash for the backtest
+    :param commission: The commission per trade, expressed in percentage points
+    :return: None
     """
-    max_drift = 0.06  # Maximum distance from optimal portfolio
-    minkowski_p = 4  # Minkowski-p to determine which distance measure to use
-    starting_cash = 100_000
-    commission = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
     cm.register_cmap('betterment', cmap=colors.ListedColormap(BETTERMENT_PALETTE))
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
@@ -139,7 +138,10 @@ def run():
     dates = returns_df.index
     returns_df.index.name = 'Date'
     returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
-    target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
+    target_weights = pd.Series(
+        data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05],
+        index=tickers
+    )
 
     returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
 
@@ -154,10 +156,23 @@ def run():
     rebalanced = Strategy('rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
     rebalanced.trade(minkowski_p, max_drift)
 
+
+    # SUMMARY STATISTICS
+    buy_and_hold_stats = buy_and_hold.summary_stats()
+    rebalanced_stats = rebalanced.summary_stats()
+    stats = pd.DataFrame(
+        data=[buy_and_hold_stats, rebalanced_stats],
+        index=['Buy and Hold', 'Rebalanced'],
+        columns=['Capital Gains', 'Total Return', 'Annualized Return', 'Annualized Volatility', 'Sharpe Ratio', 'Number of Trades']
+    )
+    stats['Capital Gains'] = stats['Capital Gains'].round(2)
+    stats.iloc[:, 1:5] = stats.iloc[:, 1:5].round(3)
+    stats.to_csv(os.path.join('datasets', 'stats.csv'))
+
     save_images(buy_and_hold, rebalanced)
     buy_and_hold.save_to_csv()
     rebalanced.save_to_csv()
 
 
 if __name__ == '__main__':
-    run()
+    run(max_drift=0.05, minkowski_p=4, starting_cash=100_000, commission=0.005)

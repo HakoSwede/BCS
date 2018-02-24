@@ -11,6 +11,16 @@ class Strategy:
     """
 
     def __init__(self, name, dates, tickers, etf_returns, target_weights, starting_cash, commission):
+        """
+
+        :param name:
+        :param dates:
+        :param tickers:
+        :param etf_returns:
+        :param target_weights:
+        :param starting_cash:
+        :param commission:
+        """
         self.name = name
         self.dates = dates
         self.tickers = tickers
@@ -24,33 +34,19 @@ class Strategy:
             dtype=np.float64
         )
         self.etf_returns = etf_returns
-        self.initialize_df()
+        self._initialize_df()
         self.trades = pd.DataFrame(columns=self.tickers, dtype=np.float64)
         self.trades.loc[self.dates[0]] = self.df.loc[self.dates[0], 'values'].values
 
-
-    def initialize_df(self):
+    def _initialize_df(self):
         """
 
         :return:
         """
-        self.df['values'] = (self.etf_returns['cumulative'] * self.starting_cash).mul(self.target_weights, axis=1).values
+        self.df['values'] = (self.etf_returns['cumulative'] *
+                             self.starting_cash).mul(self.target_weights, axis=1).values
         self.df['allocations'] = (self.df['values'].div(self.df['values'].sum(axis=1), axis=0))
         self.df['returns'] = (self.df['values'].sum(axis=1)).pct_change(1).fillna(0)
-
-
-    def summary_stats(self):
-        """
-
-        :return:
-        """
-        total_return = self.df['values'].iloc[-1].sum() / self.starting_cash
-        seconds_invested = (self.df.index[-1] - self.df.index[0]).total_seconds()
-        seconds_per_year = 60 * 60 * 24 * 365
-        annualized_returns = total_return ** (seconds_per_year / seconds_invested) - 1
-        annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
-        sharpe = annualized_returns / annualized_volatility
-        return annualized_returns, annualized_volatility, sharpe
 
     def rebalance(self, date):
         """
@@ -94,6 +90,21 @@ class Strategy:
                 self.trades.loc[date] = trade
         self.df['returns'] = self.df['values'].sum(axis=1).pct_change(1).fillna(0)
 
+    def summary_stats(self):
+        """
+
+        :return:
+        """
+        capital_gains = self.df['values'].iloc[-1].sum() - self.starting_cash
+        total_return = capital_gains / self.starting_cash
+        seconds_invested = (self.df.index[-1] - self.df.index[0]).total_seconds()
+        seconds_per_year = 60 * 60 * 24 * 365
+        annualized_returns = total_return ** (seconds_per_year / seconds_invested)
+        annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
+        sharpe = annualized_returns / annualized_volatility
+        num_trades = self.trades.shape[0]
+        return capital_gains, total_return, annualized_returns, annualized_volatility, sharpe, num_trades
+
     def save_to_csv(self):
         """
 
@@ -114,6 +125,8 @@ def minkowski_distance(arr_1, arr_2, p):
     p = 1: Manhattan Distance
 
     p = 2: Euclidian distance
+
+    p -> 0: Hamming distance
 
     p -> infinity: Chebyshev distance
 

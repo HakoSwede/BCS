@@ -42,10 +42,8 @@ def generate_sensitivity_plot(returns_df, target_weights, starting_cash, commiss
     plt.close()
 
 
-def run():
+def run(starting_cash=100_000, commission=0.005):
     sns.set(style='whitegrid')
-    starting_cash = 100_000
-    commission = 0.005
 
     returns_df = pd.read_csv(
         filepath_or_buffer='portfolio_returns.csv',
@@ -62,5 +60,5 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    run(starting_cash=100_000, commission=0.005)
 
