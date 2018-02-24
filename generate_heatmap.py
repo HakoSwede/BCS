@@ -10,7 +10,7 @@ from bcs import Strategy
 
 
 def generate_sensitivity_plot(returns_df, target_weights, starting_cash, commission):
-    dates = returns_df.first_valid_index
+    dates = returns_df.index
     tickers = returns_df['daily'].columns
     min_p, max_p, step_p = 1, 10, 1
     min_tol, max_tol, step_tol = 0.01, 0.2, 0.01
@@ -53,16 +53,10 @@ def run():
         parse_dates=True
     )
     tickers = returns_df.columns
-    dates = returns_df.index
     returns_df.index.name = 'Date'
     returns_df.columns = pd.MultiIndex.from_product([['daily'], tickers])
     target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tickers)
     returns_df[list(zip(['cumulative'] * 8, tickers))] = (returns_df['daily'] + 1).cumprod()
-
-    # BUY AND HOLD PORTFOLIO
-    # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
-    # the target ETF portfolio and then holds it for the period.
-    buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
 
     generate_sensitivity_plot(returns_df, target_weights, starting_cash, commission)
 

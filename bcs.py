@@ -5,24 +5,10 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import tqdm
-
 import pandas as pd
 import seaborn as sns
 
-# Declaration of constants
-BETTERMENT_BLUE = '#1F4AB4'
-BETTERMENT_GRAY = '#30363D'
-BETTERMENT_PALETTE = [
-    '#79CCFF',  # SHY
-    '#ADE7FF',  # TIP
-    '#B5FFCB',  # VTI
-    '#41F39A',  # IVE
-    '#30EC9B',  # IWN
-    '#19DB9A',  # IWS
-    '#218080',  # EFA
-    '#112F42',  # EEM
-]
+from betterment_colors import BETTERMENT_BLUE, BETTERMENT_GRAY, BETTERMENT_PALETTE
 
 
 class Strategy:
@@ -33,12 +19,16 @@ class Strategy:
         self.target_weights = target_weights
         self.starting_cash = starting_cash
         self.commission = commission
-        columns = pd.MultiIndex.from_product([['values', 'allocations'], tickers])
-        self.df = pd.DataFrame(data=np.zeros((len(dates),len(columns))),index=dates, columns=columns, dtype=np.float64)
+        self.df = pd.DataFrame(
+            data=np.zeros((len(dates), len(tickers) * 2)),
+            index=dates,
+            columns=pd.MultiIndex.from_product([['values', 'allocations'], tickers]),
+            dtype=np.float64
+        )
         self.etf_returns = etf_returns
         self.initialize_df()
         self.trades = pd.DataFrame(columns=self.tickers, dtype=np.float64)
-        self.trades.loc[self.dates[0]] = self.df.loc[self.dates[0], 'values'].values  # First trade is purchasing target portfolio.
+        self.trades.loc[self.dates[0]] = self.df.loc[self.dates[0], 'values'].values
 
     def initialize_df(self):
         self.df['values'] = (self.etf_returns['cumulative'] * self.starting_cash).mul(self.target_weights, axis=1).values
@@ -78,9 +68,8 @@ class Strategy:
 
     def trade(self, minkowski_p, max_drift):
         """
-            Main method to implement the specified trading strategy. The strategy will rebalance whenever the max_drift is less
-            than the allowed drift based on the Minkowski p-value and the specified target weights.
-            :param strategy: The strategy to trade
+            Main method to implement the specified trading strategy. The strategy will rebalance whenever the max_drift
+            is less than the allowed drift based on the Minkowski p-value and the specified target weights.
             :param minkowski_p: The p-value for the Minkowski distance measure
             :param max_drift: The max allowed percentage point drift from the strategies ideal weighting
             :return: None
@@ -100,6 +89,7 @@ class Strategy:
         self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(self.name)))
         self.df['returns'].to_csv(path('{0}_returns.csv'.format(self.name)))
         self.trades.to_csv(path('{0}_trades.csv'.format(self.name)))
+
 
 def minkowski_distance(arr_1, arr_2, p):
     """
@@ -129,7 +119,7 @@ def save_images(strategy_1, strategy_2):
     """
     General function for plotting images of the dataframes created by the main code of the file.
 
-    :param strategy_!: The first strategy to plot and compare. This is the benchmark.
+    :param strategy_1: The first strategy to plot and compare. This is the benchmark.
     :param strategy_2: The second strategy to plot and compare. This is the portfolio.
     :return:
     """
@@ -235,8 +225,8 @@ def save_images(strategy_1, strategy_2):
 
 
 def run():
-    max_drift = 0.05  # Maximum distance from optimal portfolio
-    minkowski_p = 5  # Minkowski-p to determine which distance measure to use
+    max_drift = 0.06  # Maximum distance from optimal portfolio
+    minkowski_p = 4  # Minkowski-p to determine which distance measure to use
     starting_cash = 100_000
     commission = 0.005  # This is a form of commission (i.e. fees paid per trade), expressed in percentage.
     cm.register_cmap('betterment', cmap=colors.ListedColormap(BETTERMENT_PALETTE))
