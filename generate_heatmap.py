@@ -6,12 +6,12 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from strategy import Strategy
 from bcs import minkowski_distance
+from strategy import Strategy
 from trading_context import TradingContext
 
 
-def generate_heatmap(returns_df, target_weights, tc):
+def generate_heatmap(target_weights, tc):
     min_p, max_p, step_p = 1, 10, 1
     min_tol, max_tol, step_tol = 0.01, 0.2, 0.01
     sharpe_df = pd.DataFrame(
@@ -36,8 +36,6 @@ def generate_heatmap(returns_df, target_weights, tc):
     sharpe_df = sharpe_df.round(3)
 
     sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
-
-
 
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", xticklabels=2, yticklabels=2,
@@ -64,13 +62,10 @@ def run(starting_cash=100_000, commission=0.005):
         starting_cash=starting_cash,
         commission=commission
     )
-    returns_df.columns = pd.MultiIndex.from_product([['daily'], tc.tickers])
-    returns_df[list(zip(['cumulative'] * 8, tc.tickers))] = (returns_df['daily'] + 1).cumprod()
-    tc.instrument_returns = returns_df
+
     target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tc.tickers)
-    generate_heatmap(returns_df, target_weights, tc)
+    generate_heatmap(target_weights, tc)
 
 
 if __name__ == '__main__':
     run(starting_cash=100_000, commission=0.005)
-

@@ -4,6 +4,8 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
+import trading_context
+
 
 class Strategy:
     """
@@ -17,8 +19,9 @@ class Strategy:
     :type name: string
     :param target_weights: A series containing the target weighting of the instruments. Also the initial weights
     :type target_weights: pandas.Series
-    :param tc:
-    :type tc: TradingContext
+    :param tc: A trading context containing information regarding the traded instruments as well as initial cash and \
+        commission
+    :type tc: trading_context.TradingContext
     """
 
     def __init__(self, name, target_weights, tc):
@@ -28,7 +31,7 @@ class Strategy:
         # The strategy stores its values, returns and allocations internally as a dataframe
         self.df = pd.DataFrame(
             index=self.tc.dates,
-            columns=pd.MultiIndex.from_product([['values', 'allocations'], tc.tickers]),
+            columns=pd.MultiIndex.from_product([['values', 'allocations'], self.tc.tickers]),
             dtype=np.float64
         )
         self._initialize_df(self.df)
@@ -44,7 +47,7 @@ class Strategy:
         :return: None
         """
         df['values'] = (self.tc.instrument_returns['cumulative'] *
-                        self.tc.starting_cash).mul(self.target_weights, axis=1).values
+                        self.tc.starting_cash).mul(self.target_weights, axis=1).values  * (1 - self.tc.commission)
         df['allocations'] = self.df['values'].div(df['values'].sum(axis=1), axis=0)
         df['returns'] = (df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
@@ -52,15 +55,17 @@ class Strategy:
         """
         Rebalance the strategy to its initial weighting at a given point in time. The strategy will then hold the
         instruments until it is rebalanced again.
-        :param date: The date at which the strategy is to be rebalanced.
-        :return:
-        """
 
+        :param date: The date at which the strategy is to be rebalanced.
+        :type date: pandas.Timestamp
+        :return: A pandas series containing the values that were rebalanced for each traded instrument
+        :type return: pandas.Series
+        """
         eod_values = self.df.shift(1).loc[date, 'values'].mul(1 + self.tc.instrument_returns.loc[date, 'daily'])
         eod_portfolio_value = sum(eod_values.values)
 
         previous_values = self.df.loc[date, 'values'].copy()
-        position_value = eod_portfolio_value * self.target_weights
+        position_value = self.target_weights.mul(eod_portfolio_value)
         trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * \
                        self.tc.commission
         current_values = position_value - trading_cost
@@ -102,6 +107,7 @@ class Strategy:
 
         :return: A pandas series containing capital gains, total return, annualized return, annualized volatility, \
             sharpe ratio, and number of trades.
+        :type return: pandas.Series
         """
         capital_gains = self.df['values'].iloc[-1].sum() - self.tc.starting_cash
         total_return = capital_gains / self.tc.starting_cash
@@ -129,5 +135,3 @@ class Strategy:
         self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(self.name)))
         self.df['returns'].to_csv(path('{0}_returns.csv'.format(self.name)))
         self.trades.to_csv(path('{0}_trades.csv'.format(self.name)))
-
-

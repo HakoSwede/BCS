@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from betterment_colors import BETTERMENT_BLUE, BETTERMENT_GRAY, BETTERMENT_PALETTE
 from strategy import Strategy
 from trading_context import TradingContext
-from betterment_colors import BETTERMENT_BLUE, BETTERMENT_GRAY, BETTERMENT_PALETTE
 
 
 def minkowski_distance(arr_1, arr_2, p):
@@ -37,14 +37,18 @@ def minkowski_distance(arr_1, arr_2, p):
     return sum(abs(arr_1 - arr_2) ** p) ** (1 / p)
 
 
-
 def save_images(strategy_1, strategy_2):
     """
-    General function for plotting images of the dataframes created by the main code of the file.
+    General function for plotting charts of two trading strategies. Charts produce include a stacked area chart of
+    the asset allocation, a line chart for the daily returns of each trading strategy including a histogram,
+    a line chart showing the net flows of cash between the instruments of the strategy, and a line chart
+    showing the total returns of the two strategies. The charts are saved in the 'images' directory.
 
     :param strategy_1: The first strategy to plot and compare. This is the benchmark.
+    :type strategy_1: Strategy
     :param strategy_2: The second strategy to plot and compare. This is the portfolio.
-    :return:
+    :type strategy_2: Strategy
+    :return: None
     """
 
     # RETURNS PLOT
@@ -150,9 +154,13 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
     """
 
     :param max_drift: Our max allowed drift from the target portfolio, in percentage points.
+    :type max_drift: float
     :param minkowski_p: The p-parameter for the Minkowski distance function
+    :type minkowski_p: float
     :param starting_cash: The initial cash for the backtest
+    :type starting_cash: float
     :param commission: The commission per trade, expressed in percentage points
+    :type commission: float
     :return: None
     """
     cm.register_cmap('betterment', cmap=colors.ListedColormap(BETTERMENT_PALETTE))
@@ -162,8 +170,8 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
         index_col=0,
         parse_dates=True
     )
-    returns_df.index.name = 'Date'
 
+    # A trading context is created to ensure that both strategies are traded under the same conditions
     tc = TradingContext(
         dates=returns_df.index,
         tickers=returns_df.columns,
@@ -171,26 +179,24 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
         starting_cash=starting_cash,
         commission=commission
     )
-    returns_df.columns = pd.MultiIndex.from_product([['daily'], tc.tickers])
-    returns_df[list(zip(['cumulative'] * 8, tc.tickers))] = (returns_df['daily'] + 1).cumprod()
-    tc.instrument_returns=returns_df
 
     target_weights = pd.Series(
         data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05],
         index=tc.tickers
     )
-    # BUY AND HOLD PORTFOLIO
+
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
-    buy_and_hold = Strategy('buy_and_hold', target_weights,tc)
+    buy_and_hold = Strategy('buy_and_hold', target_weights, tc)
 
-    # REBALANCED PORTFOLIO
     # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
     # allocation drifts too far from the target.
-    rebalanced = Strategy('rebalanced',target_weights, tc)
+    rebalanced = Strategy('rebalanced', target_weights, tc)
+
+    # We give the rebalanced portfolio the Minkoski distance as its trigger function, and the max_drift as its
+    # trigger point. The trade method then generates the portfolio returns over the trading period.
     rebalanced.trade(trigger_function=minkowski_distance, trigger_point=max_drift, p=minkowski_p)
 
-    # SUMMARY STATISTICS
     buy_and_hold_stats = buy_and_hold.summary_stats()
     rebalanced_stats = rebalanced.summary_stats()
     stats = pd.DataFrame(
@@ -198,7 +204,8 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
         index=['Buy and Hold', 'Rebalanced']
     )
     stats['Capital Gains'] = stats['Capital Gains'].round(2)
-    stats.iloc[:, 1:5] = stats.iloc[:, 1:5].round(3)
+    for col in ['Total Return', 'Annualized Return', 'Annualized Volatility', 'Sharpe Ratio']:
+        stats[col] = stats[col].round(3)
     stats.index.name = 'Strategy'
     stats.to_csv(os.path.join('datasets', 'stats.csv'))
 
