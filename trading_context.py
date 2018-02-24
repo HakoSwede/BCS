@@ -2,8 +2,7 @@ import pandas as pd
 
 
 class TradingContext:
-    """
-    Data structure for storing various parameters used in trading a strategy.
+    """Data structure for storing various parameters used in trading a strategy.
 
     The trading context stores the dates for the backtest, the instruments to be traded, the returns of those
     instruments, the starting cash, and the commission per trade.
@@ -29,8 +28,7 @@ class TradingContext:
         self._add_cumulative_returns(instrument_returns)
 
     def _add_cumulative_returns(self, instrument_returns):
-        """
-        Adds cumulative returns to the instrument_returns dataframe
+        """Adds cumulative returns to the instrument_returns dataframe
         :param instrument_returns: Dataframe containing the daily returns of the instruments.
         :return: None
         """

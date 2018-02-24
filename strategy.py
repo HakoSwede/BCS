@@ -1,18 +1,17 @@
 import os
 from functools import partial
 
+import matplotlib.colors
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
-import matplotlib.axes
-import matplotlib.colors
 import seaborn as sns
 
 import trading_context
 
 
 class Strategy:
-    """
-    Data structure for a trading strategy.
+    """Data structure for a trading strategy.
 
     The strategy is initialized to a buy-and-hold strategy on the underlying instruments, with the initial weighting
     given by target_weights. At any point in time, the strategy can be rebalanced to the initial weighting by calling
@@ -43,8 +42,7 @@ class Strategy:
         self.trades.loc[self.tc.dates[0]] = self.df.loc[self.tc.dates[0], 'values'].values
 
     def _initialize_df(self, df):
-        """
-        Initialization of the dataframe of the strategy.  The dataframe initially has the same returns as the
+        """Initialization of the dataframe of the strategy.  The dataframe initially has the same returns as the
         'buy-and-hold' portfolio, and is then updated after every trade.
 
         :return: None
@@ -55,8 +53,7 @@ class Strategy:
         df['returns'] = (df['values'].sum(axis=1)).pct_change(1).fillna(0)
 
     def rebalance(self, date):
-        """
-        Rebalance the strategy to its initial weighting at a given point in time. The strategy will then hold the
+        """Rebalance the strategy to its initial weighting at a given point in time. The strategy will then hold the
         instruments until it is rebalanced again.
 
         :param date: The date at which the strategy is to be rebalanced.
@@ -84,8 +81,7 @@ class Strategy:
         return trade
 
     def trade(self, trigger_function, trigger_point, **trigger_function_kwargs):
-        """
-        Main function to implement trading strategy. The trigger_function has to accept two arrays, the current
+        """Main function to implement trading strategy. The trigger_function has to accept two arrays, the current
         allocation and the target allocation. It can also accept additional arguments, given in **kwargs. The trigger
         function has to output a float, which can then be compared to the trigger_point. If the trigger_point is
         exceeded, the portfolio will rebalance.
@@ -102,11 +98,11 @@ class Strategy:
                 # then rebalance the portfolio
                 trade = self.rebalance(date)
                 self.trades.loc[date] = trade
+        # When the trading is finished, we update the daily returns of the portfolio
         self.df['returns'] = self.df['values'].sum(axis=1).pct_change(1).fillna(0)
 
     def summary_stats(self):
-        """
-        Return a series containing the summary statistics for a strategy
+        """Return a series containing the summary statistics for a strategy
 
         :return: A pandas series containing capital gains, total return, annualized return, annualized volatility, \
             sharpe ratio, and number of trades.
@@ -127,8 +123,7 @@ class Strategy:
         return stats
 
     def save_to_csv(self):
-        """
-        Save the strategy to 4 separate CSVs. The CSVs contain data on the strategy values, allocations, returns and
+        """Save the strategy to 4 separate CSVs. The CSVs contain data on the strategy values, allocations, returns and
         trades. The CSVs are saved in the datasets folder.
 
         :return: None
@@ -141,8 +136,7 @@ class Strategy:
         self.trades.to_csv(path('{0}_trades.csv'.format(save_name)))
 
     def returns_chart(self, ax, color):
-        """
-        Produces a line chart of the daily returns.
+        """Produces a line chart of the daily returns.
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -159,8 +153,7 @@ class Strategy:
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
 
     def returns_distribution_chart(self, ax, color):
-        """
-        Produces a Seaborn distplot of the daily returns.
+        """Produces a Seaborn distplot of the daily returns.
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -177,8 +170,7 @@ class Strategy:
         )
 
     def asset_allocations_chart(self, ax, cm):
-        """
-        Produces an area chart of the asset allocation of the Strategy
+        """Produces an area chart of the asset allocation of the Strategy
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -196,10 +188,11 @@ class Strategy:
             colormap=cm
         )
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
+        # Setting y the y labels to percentages
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
 
     def value_chart(self, ax, color):
-        """
-        Produces a line chart of the value of the Strategy
+        """Produces a line chart of the value of the Strategy
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -215,10 +208,10 @@ class Strategy:
             color=color
         )
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
+        ax.get_yaxis().set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ',')))
 
     def trades_chart(self, ax, cm):
-        """
-        Produces a line chart of the cumulative flows to each instrument of the Strategy
+        """Produces a line chart of the cumulative flows to each instrument of the Strategy
 
         :param ax: The Matplotlib axes on which to plot the chart.
         :type ax: matplotlib.axes.Axes
@@ -233,3 +226,4 @@ class Strategy:
             cmap=cm
         )
         ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
+        ax.get_yaxis().set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ',')))
