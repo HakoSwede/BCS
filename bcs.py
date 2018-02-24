@@ -52,38 +52,14 @@ def save_images(strategy_1, strategy_2):
     """
 
     # RETURNS PLOT
-    df_1 = strategy_1.df
-    df_2 = strategy_2.df
-    df_trades = strategy_2.trades
     df_1_ax = plt.subplot2grid((2, 2), (0, 0))
     df_2_ax = plt.subplot2grid((2, 2), (1, 0))
     hist_ax = plt.subplot2grid((2, 2), (0, 1), rowspan=2)
 
-    df_1['returns'].plot(
-        ax=df_1_ax,
-        figsize=(12, 6),
-        title='Daily returns of buy-and-hold portfolio',
-        color=BETTERMENT_GRAY
-    )
-    df_2['returns'].plot(
-        ax=df_2_ax,
-        title='Daily returns of rebalanced portfolio',
-        color=BETTERMENT_BLUE
-    )
-    sns.distplot(
-        a=df_1['returns'],
-        color=BETTERMENT_GRAY,
-        ax=hist_ax,
-        bins=50,
-        label='Buy and Hold'
-    )
-    sns.distplot(
-        a=df_2['returns'],
-        color=BETTERMENT_BLUE,
-        ax=hist_ax,
-        bins=50,
-        label='Rebalance'
-    )
+    strategy_1.returns_chart(df_1_ax, BETTERMENT_GRAY)
+    strategy_2.returns_chart(df_2_ax, BETTERMENT_BLUE)
+    strategy_1.returns_distribution_chart(hist_ax, BETTERMENT_GRAY)
+    strategy_2.returns_distribution_chart(hist_ax, BETTERMENT_BLUE)
     plt.title('Frequency of returns')
     plt.legend()
     plt.tight_layout()
@@ -92,58 +68,23 @@ def save_images(strategy_1, strategy_2):
 
     # ALLOCATIONS PLOT
     fig_alloc, axes_alloc = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
-
-    df_1['allocations'].plot(
-        ax=axes_alloc[0],
-        figsize=(12, 6),
-        title='weight of portfolio assets of buy-and-hold portfolio',
-        kind='area',
-        legend=False,
-        ylim=(0, 1),
-        colormap=cm.get_cmap('betterment', 8)
-    )
-    df_2['allocations'].plot(
-        ax=axes_alloc[1],
-        title='Weight of portfolio assets of rebalanced portfolio',
-        kind='area',
-        legend=False,
-        colormap=cm.get_cmap('betterment')
-    )
-    axes_alloc[0].set_xlim(df_1.index[0], df_1.index[-1])
+    strategy_1.asset_allocations_chart(axes_alloc[0], cm.get_cmap('betterment'))
+    strategy_2.asset_allocations_chart(axes_alloc[1], cm.get_cmap('betterment'))
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.3), ncol=8)
     plt.savefig(os.path.join('images', 'asset_allocations.png'), dpi=300)
     plt.gcf().clear()
 
     # PORTFOLIO VALUE PLOT
     fig_values, axes_values = plt.subplots()
-
-    df_1['values'].sum(axis=1).plot(
-        ax=axes_values,
-        figsize=(12, 6),
-        title='Portfolio values',
-        label='Value of buy-and-hold portfolio',
-        color=BETTERMENT_GRAY
-    )
-    df_2['values'].sum(axis=1).plot(
-        ax=axes_values,
-        label='Value of rebalanced portfolio',
-        color=BETTERMENT_BLUE
-    )
-    axes_values.set_xlim(df_1.index[0], df_1.index[-1])
+    strategy_1.value_chart(axes_values, BETTERMENT_GRAY)
+    strategy_2.value_chart(axes_values, BETTERMENT_BLUE)
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.15), ncol=2)
     plt.savefig(os.path.join('images', 'values.png'), dpi=300)
     plt.gcf().clear()
 
     # TRADES PLOT
     fig_trades, axes_trades = plt.subplots()
-
-    df_trades.cumsum().reindex(df_1.index, method='ffill').plot(
-        ax=axes_trades,
-        figsize=(12, 6),
-        title='Cumulative investment per ETF',
-        cmap='betterment'
-    )
-    axes_trades.set_xlim(df_1.index[0], df_1.index[-1])
+    strategy_2.trades_chart(axes_trades, cm.get_cmap('betterment'))
     plt.legend(loc=9, bbox_to_anchor=(0.5, -0.2), ncol=8)
     plt.savefig(os.path.join('images', 'trades.png'), dpi=300)
     plt.gcf().clear()
@@ -187,11 +128,11 @@ def run(max_drift=0.05, minkowski_p=4, starting_cash=100000, commission=0.005):
 
     # The buy-and-hold portfolio serves as our baseline. As expected from the name, the buy-and-hold portfolio buys
     # the target ETF portfolio and then holds it for the period.
-    buy_and_hold = Strategy('buy_and_hold', target_weights, tc)
+    buy_and_hold = Strategy('Buy and Hold', target_weights, tc)
 
     # The rebalanced portfolio is our 'active' portfolio for this case study. It rebalances its holdings whenever the
     # allocation drifts too far from the target.
-    rebalanced = Strategy('rebalanced', target_weights, tc)
+    rebalanced = Strategy('Rebalanced', target_weights, tc)
 
     # We give the rebalanced portfolio the Minkoski distance as its trigger function, and the max_drift as its
     # trigger point. The trade method then generates the portfolio returns over the trading period.

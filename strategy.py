@@ -3,6 +3,7 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 import trading_context
 
@@ -131,7 +132,57 @@ class Strategy:
         :return: None
         """
         path = partial(os.path.join, 'datasets')
-        self.df['values'].sum(axis=1).to_csv(path('{0}_values.csv'.format(self.name)))
-        self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(self.name)))
-        self.df['returns'].to_csv(path('{0}_returns.csv'.format(self.name)))
-        self.trades.to_csv(path('{0}_trades.csv'.format(self.name)))
+        save_name = self.name.lower().replace(' ','_')
+        self.df['values'].sum(axis=1).to_csv(path('{0}_values.csv'.format(save_name)))
+        self.df['allocations'].to_csv(path('{0}_allocations.csv'.format(save_name)))
+        self.df['returns'].to_csv(path('{0}_returns.csv'.format(save_name)))
+        self.trades.to_csv(path('{0}_trades.csv'.format(save_name)))
+
+    def returns_chart(self, ax, color):
+        self.df['returns'].plot(
+            ax=ax,
+            figsize=(12, 6),
+            title='Daily returns of {name} strategy'.format(name=self.name),
+            color=color
+        )
+        ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
+
+    def returns_distribution_chart(self, ax, color):
+        sns.distplot(
+            a=self.df['returns'],
+            color=color,
+            ax=ax,
+            bins=50,
+            label='{name}'.format(name=self.name)
+        )
+
+    def asset_allocations_chart(self, ax, cm):
+        self.df['allocations'].plot(
+            ax=ax,
+            figsize=(12, 6),
+            title='Weight of portfolio assets of {name} strategy'.format(name=self.name),
+            kind='area',
+            legend=False,
+            ylim=(0, 1),
+            colormap=cm
+        )
+        ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
+
+    def value_chart(self, ax, color):
+        self.df['values'].sum(axis=1).plot(
+            ax=ax,
+            figsize=(12, 6),
+            title='Portfolio values',
+            label='Value of buy-and-hold strategy'.format(name=self.name),
+            color=color
+        )
+        ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
+
+    def trades_chart(self, ax, cm):
+        self.trades.cumsum().reindex(self.tc.dates, method='ffill').plot(
+            ax=ax,
+            figsize=(12, 6),
+            title='Cumulative investment per instrument',
+            cmap=cm
+        )
+        ax.set_xlim(self.tc.dates[0], self.tc.dates[-1])
