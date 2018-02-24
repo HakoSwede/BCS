@@ -25,13 +25,13 @@ def generate_heatmap(returns_df, target_weights, starting_cash, commission):
             rebalanced = Strategy('Rebalanced', dates, tickers, returns_df, target_weights, starting_cash, commission)
             rebalanced.trade(trigger_function=minkowski_distance, trigger_point=tol, p=p)
             stats = rebalanced.summary_stats()
-            sharpe_df.loc[p, tol] = stats[4]
+            sharpe_df.loc[p, tol] = stats['Sharpe Ratio']
 
     sharpe_df.columns.name = 'Threshold'
     sharpe_df.index.name = 'Minkowski p'
 
     buy_and_hold = Strategy('buy_and_hold', dates, tickers, returns_df, target_weights, starting_cash, commission)
-    buy_and_hold_sharpe = buy_and_hold.summary_stats()[4]
+    buy_and_hold_sharpe = buy_and_hold.summary_stats()['Sharpe Ratio']
     sharpe_df -= buy_and_hold_sharpe
     mask = sharpe_df == 0
     sharpe_df = sharpe_df.round(3)

@@ -109,8 +109,9 @@ class Strategy:
 
     def summary_stats(self):
         """
-
-        :return:
+        Return a series containing the summary statistics for a strategy
+        :return: A pandas series containing capital gains, total return,
+        annualized return, annualized volatility, sharpe ratio, and number of trades.
         """
         capital_gains = self.df['values'].iloc[-1].sum() - self.starting_cash
         total_return = capital_gains / self.starting_cash
@@ -120,7 +121,12 @@ class Strategy:
         annualized_volatility = self.df['returns'].std() * (252 ** 0.5)
         sharpe = annualized_returns / annualized_volatility
         num_trades = self.trades.shape[0]
-        return capital_gains, total_return, annualized_returns, annualized_volatility, sharpe, num_trades
+        stats = pd.Series(
+            data=[capital_gains, total_return, annualized_returns, annualized_volatility, sharpe, num_trades],
+            index=['Capital Gains', 'Total Return', 'Annualized Return', 'Annualized Volatility', 'Sharpe Ratio',
+                   'Number of Trades']
+        )
+        return stats
 
     def save_to_csv(self):
         """
