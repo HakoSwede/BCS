@@ -108,7 +108,7 @@ def run(starting_cash=100_000, commission=0.005):
     """
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
-        filepath_or_buffer=os.path.join('portfolio_returns.csv'),
+        filepath_or_buffer='portfolio_returns.csv',
         index_col=0,
         parse_dates=True
     )
