@@ -66,7 +66,7 @@ class Strategy:
         previous_values = self.df.loc[date, 'values'].copy()
         position_value = self.target_weights.mul(eod_portfolio_value)
         trading_cost = abs(eod_values.div(eod_portfolio_value) - self.target_weights) * eod_portfolio_value * \
-            self.tc.commission
+                       self.tc.commission
         current_values = position_value - trading_cost
         self.df.loc[date, 'values'] = current_values.values
         future_values = self.tc.instrument_returns.loc[date:, 'cumulative'].div(

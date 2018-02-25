@@ -141,7 +141,7 @@ def run(starting_cash=100_000, commission=0.005):
     plt.gcf().clear()
     plt.close()
 
-    sharpe_neighborhood_df.to_csv(os.path.join('..', 'datasets', 'neighborhood_sharpe'))
+    sharpe_neighborhood_df.to_csv(os.path.join('..', 'datasets', 'neighborhood_sharpe.csv'))
     mask = sharpe_neighborhood_df == 0
 
     # Plotting the heatmap
