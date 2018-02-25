@@ -108,7 +108,7 @@ def run(starting_cash=100_000, commission=0.005):
     """
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
-        filepath_or_buffer=os.path.join('..', 'portfolio_returns.csv'),
+        filepath_or_buffer=os.path.join('portfolio_returns.csv'),
         index_col=0,
         parse_dates=True
     )
@@ -128,7 +128,7 @@ def run(starting_cash=100_000, commission=0.005):
     sharpe_df = excess_sharpe(p_range, tol_range, target_weights, tc)
     sharpe_neighborhood_df = neighborhood_sharpe(sharpe_df)
 
-    sharpe_df.to_csv(os.path.join('..', 'datasets', 'sharpe.csv'))
+    sharpe_df.to_csv(os.path.join('datasets', 'sharpe.csv'))
 
     # A mask is created to cover any cells where the excess Sharpe is 0, i.e., the strategy did not rebalance
     mask = sharpe_df == 0
@@ -137,18 +137,18 @@ def run(starting_cash=100_000, commission=0.005):
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", mask=mask)
     plt.tight_layout()
-    plt.savefig(os.path.join('..', 'images', 'sharpe.png'))
+    plt.savefig(os.path.join('images', 'sharpe.png'))
     plt.gcf().clear()
     plt.close()
 
-    sharpe_neighborhood_df.to_csv(os.path.join('..', 'datasets', 'neighborhood_sharpe.csv'))
+    sharpe_neighborhood_df.to_csv(os.path.join('datasets', 'neighborhood_sharpe.csv'))
     mask = sharpe_neighborhood_df == 0
 
     # Plotting the heatmap
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_neighborhood_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", mask=mask)
     plt.tight_layout()
-    plt.savefig(os.path.join('..', 'images', 'neighborhood_sharpe.png'))
+    plt.savefig(os.path.join('images', 'neighborhood_sharpe.png'))
     plt.gcf().clear()
     plt.close()
 
