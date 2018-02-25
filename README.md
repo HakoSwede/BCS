@@ -152,3 +152,13 @@ accurate model would look at the volume traded per day and model trading through
 #### Use of cash
 Since the input to the model only included returns and not asset prices, I assumed that I was able to buy fractional
 shares and thus invest all cash at every time point. 
+
+#### Tax considerations
+The model does not take taxable gains or losses into account at all when trading. This is a very flawed assumption
+as the rebalancing portfolio's returns could be significantly reduced on a post-tax basis, especially if it incurs
+short-term gains.
+
+#### Improvements that could be made to the method of rebalancing
+The model only rebalances based on the Minkowski distance trigger function, but the model could be improved by 
+considering the flow of cash through dividends. If a dividend is distributed, the model could use that added cash
+as a means to rebalance the portfolio even if the threshold for rebalancing hasn't been breached. 
