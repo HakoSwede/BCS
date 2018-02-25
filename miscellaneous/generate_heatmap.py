@@ -90,6 +90,27 @@ def run(starting_cash=100_000, commission=0.005):
 
     sharpe_df.to_csv(os.path.join('datasets', 'heatmap.csv'))
 
+    sum_df = pd.DataFrame(
+        data=np.zeros_like(sharpe_df.values),
+        index=sharpe_df.index,
+        columns=sharpe_df.columns
+    )
+
+    for r in [-1, 0, 1]:
+        for c in [-1, 0, 1]:
+            sum_df += sharpe_df.shift(r, axis=0).shift(c, axis=1).fillna(0)
+
+    for r in [0, -1]:
+        for c in [0, -1]:
+            sum_df.iloc[r, c] /= 4
+
+    sum_df.iloc[1:-2, 0] /= 6
+    sum_df.iloc[1:-2, -1] /= 6
+    sum_df.iloc[0, 1:-2] /= 6
+    sum_df.iloc[-1, 1:-2] /= 6
+    sum_df.iloc[1:-2, 1:-2] /= 9
+
+
     # A mask is created to cover any cells where the excess Sharpe is 0, i.e., the strategy did not rebalance
     mask = sharpe_df == 0
 
