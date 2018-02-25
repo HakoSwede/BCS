@@ -1,4 +1,17 @@
-# BCS: Sebastian Rollen
+# Betterment Case Study: Sebastian Rollen
+
+---
+## Installation
+For this project, I've used Anaconda for my packet manager. The Anaconda environment is given in the
+`environment.yml` file. To install,
+1. Create the environment from the `environment.yml` file:  
+```conda env create -f environment.yml```
+2. Activate the new environment:
+  * Windows: `activate BCS`
+  * macOS and Linux: `source activate BCS`  
+
+The main portion of the case study is found in `main.py`, and can be run by calling `python main.py`.
+
 ---
 ## Deliverables
 * Daily portfolio returns, both as a graph and dataset:
@@ -23,18 +36,7 @@
 * A small comparison of performance under rebalancing or not:
   * A dataset of summary statistics has been calculated and included. The dataset is available in `datasets/stats.csv`.
 * Any other results you want to present:
-  * TBD
----
-## Installation
-For this project, I've used Anaconda for my packet manager. The Anaconda environment is given in the
-`environment.yml` file. To install,
-1. Create the environment from the `environment.yml` file:  
-```
-conda env create -f environment.yml
-```
-2. Activate the new environment:
-  * Windows: `activate BCS`
-  * macOS and Linux: `source activate BCS`
+  * Presented in rest of README
 ---
 ## General comments regarding the case
 ### Choice of distance function and  tolerance threshold
@@ -69,6 +71,17 @@ cases of a more general distance function, the Minkowski distance.
 Specifically, the Minkowski distance is equal to the Manhattan distance when p = 1 and equal to the Euclidian distance
 when p = 2.
 With the Minkowski distance, we have an infinite amount of possible distance functions, each with differing properties.
+One can visualize the Minkowski distance in 2 dimensions by drawing the unit circle for that particular metric. 
+The unit circle is defined as the boundary around the origin with all points on the circle being 1 distance unit away
+from the origin. The unit circle was calculated for various Minkowski p values in 
+`miscellaneous/minkowski_unit_circle.py` and is reproduced below:
+
+![Unit circle](images/minkowski_p_unit_circles.png)
+
+For p = 2, we see a round circle as we would expect to see when visualizing the unit circle. That's because the 
+Euclidian metric is used to measure distances in Euclidian 2-d space.  
+For p = 1, the unit circle appears as a diamond inscribed in the p=2 circle. 
+
 As p approaches zero, we get increasingly close to the Hamming distance function:
 
 ![Hamming distance](equations/hamming.png)
@@ -88,8 +101,9 @@ trades would also harm the portfolio due to commissions and slippage.
 the threshold and not be triggered. This could cause the portfolio to stay in a detrimental allocation for much
 longer than a portfolio with a lower Minkowski p-value.
 
-In order to pick which Minkowski p-value to use for the trigger function, I made a small script to loop through 
-different combinations of threshold and p-values. The results can be seen as a heatmap below:
+In order to pick which Minkowski p-value to use for the trigger function, I made a small script 
+(`miscellaneous/generate_heatmap.py`) to loop through different combinations of threshold and p-values. The results 
+can be seen as a heatmap below:
 
 ![Heatmap](images/sharpe.png)
 
@@ -109,4 +123,32 @@ computing this value, we find cells that have high excess Sharpe ratios, and als
 ratios. This gives us more comfort that the parameters picked are stable for different inputs. The heatmap for the
 neighborhood Sharpe ratios can be viewed below:
 
-![Neighborhood heatmap](images/neighborhood_sharpe.png]
+![Neighborhood](images/neighborhood_sharpe.png)
+
+In this chart, we see that the largest neighborhood Sharpe ratio is found for the parameters p=4 and tolerance=0.06.
+For this reason, these are the parameters that I ended up using during the main portion of the case study.
+
+From the statistics dataset generated, we find that rebalancing of the portfolio increased our annualized returns
+from 5.6% to 6.6% over the timeframe of the backtest. As such, my estimate of the value of rebalancing is around 1
+percentage point per year.  
+Additionally, the annualized volatility of the rebalanced portfolio is lower than that of the buy-and-hold portfolio.
+This means that the Sharpe ratio of the rebalanced portfolio is significantly higher for the rebalanced portfolio, at
+0.578 versus the 0.484 of the buy-and-hold portfolio.
+---
+### Assumptions of the model
+#### Commissions / trading costs
+The default commission applied in the model is 0.5% of the amount traded for each trade. However, if the trading 
+strategy was applied in practice, there are other costs such as slippage that may apply. To make the model more 
+realistic, one could increase the commission cost in the model, but a more realistic trading model would model 
+slippage more explicitly.
+
+#### Time of trades
+In this model, each trade is made at the end of the trading day, based on the signal given from the previous trading
+day. For example, if the portfolio allocation drifts above the threshold on day i, the model is rebalanced at the 
+close of trading day i + 1.  
+The assumption that the model is rebalanced at the end of the day is a common assumption for backtests, but a more 
+accurate model would look at the volume traded per day and model trading throughout the day.
+
+#### Use of cash
+Since the input to the model only included returns and not asset prices, I assumed that I was able to buy fractional
+shares and thus invest all cash at every time point. 

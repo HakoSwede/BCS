@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
-from bcs import minkowski_distance
+from main import minkowski_distance
 from strategy import Strategy
 from trading_context import TradingContext
 
@@ -89,6 +89,7 @@ def neighborhood_sharpe(sharpe_df):
 
     return neighborhood_sharpe_df
 
+
 def run(starting_cash=100_000, commission=0.005):
     """Create a range of Strategies, each with different parameters for the Minkowski p-value and rebalancing
     tolerance. The Sharpe ratio of each portfolio is then subtracted by the Sharpe ratio of the buy-and-hold
@@ -140,8 +141,6 @@ def run(starting_cash=100_000, commission=0.005):
     plt.gcf().clear()
     plt.close()
 
-
-
     sharpe_neighborhood_df.to_csv(os.path.join('..', 'datasets', 'neighborhood_sharpe'))
     mask = sharpe_neighborhood_df == 0
 
@@ -152,6 +151,7 @@ def run(starting_cash=100_000, commission=0.005):
     plt.savefig(os.path.join('..', 'images', 'neighborhood_sharpe.png'))
     plt.gcf().clear()
     plt.close()
+
 
 if __name__ == '__main__':
     run(starting_cash=100_000, commission=0.005)
