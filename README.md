@@ -118,8 +118,8 @@ represented as blank spaces in the heatmap.
 In general, we find that the Sharpe ratio of a portfolio usually increases as the Minkowski p-value or threshold
 increases. However, at some point these parameters become too 'loose', and the portfolio never rebalances. 
 The overall maximum over the searched grid occurs at p=1 and tolerance=0.19. However, this seems like an unwise
-choice of parameters since it is very near other cells that didn't trade at all. If we performed a backtest on a
-different dataset, that particular portfolio may not rebalance at all.
+choice of parameters since it is very near other cells that didn't trade. If we performed a backtest on a
+different dataset, that particular portfolio may not rebalance.
 In order to pick a more stable point of parameters, we calculate the neighborhood Sharpe ratios for each cell. The
 neighborhood Sharpe ratios are defined as the average excess Sharpe ratios of each cell and its neighbors. By
 computing this value, we find cells that have high excess Sharpe ratios, and also have neighbors with high Sharpe
@@ -137,6 +137,7 @@ percentage point per year.
 Additionally, the annualized volatility of the rebalanced portfolio is lower than that of the buy-and-hold portfolio.
 This means that the Sharpe ratio of the rebalanced portfolio is significantly higher for the rebalanced portfolio, at
 0.578 versus the 0.484 of the buy-and-hold portfolio.
+
 ---
 ### Assumptions of the model
 #### Commissions / trading costs
@@ -148,8 +149,7 @@ slippage more explicitly.
 #### Time of trades
 In this model, each trade is made at the end of the trading day, based on the signal given from the previous trading
 day. For example, if the portfolio allocation drifts above the threshold on day i, the model is rebalanced at the 
-close of trading day i + 1.  
-The assumption that the model is rebalanced at the end of the day is a common assumption for backtests, but a more 
+close of trading day i + 1. The assumption that the model is rebalanced at the end of the day is a common assumption for backtests, but a more 
 accurate model would look at the volume traded per day and model trading throughout the day.
 
 #### Use of cash
@@ -157,7 +157,7 @@ Since the input to the model only included returns and not asset prices, I assum
 shares and thus invest all cash at every time point. 
 
 #### Tax considerations
-The model does not take taxable gains or losses into account at all when trading. This is a very flawed assumption
+The model does not take taxable gains or losses into account when trading. This is a very flawed assumption
 as the rebalancing portfolio's returns could be significantly reduced on a post-tax basis, especially if it incurs
 short-term gains.
 
