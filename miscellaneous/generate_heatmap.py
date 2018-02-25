@@ -11,7 +11,7 @@ from strategy import Strategy
 from trading_context import TradingContext
 
 
-def excess_sharpe_df(p_range, tol_range, target_weights, tc):
+def excess_sharpe(p_range, tol_range, target_weights, tc):
     """Creates a dataframe of the excess Sharpe for each rebalancing strategy over the buy-and-hold portfolio.
 
     :param p_range: A tuple containing the minimum, maximum and step for the Minkowski p-value
@@ -55,11 +55,49 @@ def excess_sharpe_df(p_range, tol_range, target_weights, tc):
     return sharpe_df
 
 
+def neighborhood_sharpe(sharpe_df):
+    """Create a dataframe that contains the 'neighborhood' Sharpe ratios. For each cell in the Sharpe dataframe, the
+    neighborhood Sharpe is the average of the cells neighbors and the cell itself.
+
+    :param sharpe_df: Pandas dataframe with Sharpe ratios for a combination of Minkowski p values and thresholds.
+    :type sharpe_df: pandas.DataFrame
+    :return: A dataframe of neighborhood Sharpe values
+    """
+    # We also create a dataframe that sums the neighboring value for each cell in the heatmap
+    neighborhood_sharpe_df = pd.DataFrame(
+        data=np.zeros_like(sharpe_df.values),
+        index=sharpe_df.index,
+        columns=sharpe_df.columns
+    )
+
+    # We first find the sum of all neighboring cells in the original excess sharpe array
+    for r in [-1, 0, 1]:
+        for c in [-1, 0, 1]:
+            neighborhood_sharpe_df += sharpe_df.shift(r, axis=0).shift(c, axis=1).fillna(0)
+
+    # We then compute the average values
+    for r in [0, -1]:
+        for c in [0, -1]:
+            neighborhood_sharpe_df.iloc[r, c] /= 4
+    neighborhood_sharpe_df.iloc[1:-1, 0] /= 6
+    neighborhood_sharpe_df.iloc[1:-1, -1] /= 6
+    neighborhood_sharpe_df.iloc[0, 1:-1] /= 6
+    neighborhood_sharpe_df.iloc[-1, 1:-1] /= 6
+    neighborhood_sharpe_df.iloc[1:-1, 1:-1] /= 9
+
+    neighborhood_sharpe_df = neighborhood_sharpe_df.round(3)
+
+    return neighborhood_sharpe_df
+
 def run(starting_cash=100_000, commission=0.005):
     """Create a range of Strategies, each with different parameters for the Minkowski p-value and rebalancing
     tolerance. The Sharpe ratio of each portfolio is then subtracted by the Sharpe ratio of the buy-and-hold
-    portfolio to find the excess Sharpe ratio. These ratios are then saved to `heatmap.csv` and a heatmap of the ratios
-    are produced to `heatmap.png`.
+    portfolio to find the excess Sharpe ratio. These ratios are then saved to `sharpe.csv` and a heatmap of the ratios
+    are produced to `sharpe.png`.
+
+    We also produce a dataset of 'neighborhood' Sharpes, where the neightborhood Sharpe is the average sharpe of all
+    the cells surrounding a cell in the original heatmap. This data is saved to `neighborhood_sharpe.csv` and
+    reproduced as a heatmap in `neighborhood_sharpe.png`
 
     :param starting_cash: The amount of cash to which the strategy has access
     :type starting_cash: float
@@ -69,7 +107,7 @@ def run(starting_cash=100_000, commission=0.005):
     """
     sns.set(style='whitegrid')
     returns_df = pd.read_csv(
-        filepath_or_buffer='portfolio_returns.csv',
+        filepath_or_buffer=os.path.join('..', 'portfolio_returns.csv'),
         index_col=0,
         parse_dates=True
     )
@@ -84,32 +122,12 @@ def run(starting_cash=100_000, commission=0.005):
     )
 
     target_weights = pd.Series(data=[0.25, 0.25, 0.125, 0.125, 0.04, 0.035, 0.125, 0.05], index=tc.tickers)
-    p_range = 1, 10, 1
-    tol_range = 0.01, 0.2, 0.01
-    sharpe_df = excess_sharpe_df(p_range, tol_range, target_weights, tc)
+    p_range = 1, 11, 1
+    tol_range = 0.01, 0.21, 0.01
+    sharpe_df = excess_sharpe(p_range, tol_range, target_weights, tc)
+    sharpe_neighborhood_df = neighborhood_sharpe(sharpe_df)
 
-    sharpe_df.to_csv(os.path.join('datasets', 'heatmap.csv'))
-
-    sum_df = pd.DataFrame(
-        data=np.zeros_like(sharpe_df.values),
-        index=sharpe_df.index,
-        columns=sharpe_df.columns
-    )
-
-    for r in [-1, 0, 1]:
-        for c in [-1, 0, 1]:
-            sum_df += sharpe_df.shift(r, axis=0).shift(c, axis=1).fillna(0)
-
-    for r in [0, -1]:
-        for c in [0, -1]:
-            sum_df.iloc[r, c] /= 4
-
-    sum_df.iloc[1:-2, 0] /= 6
-    sum_df.iloc[1:-2, -1] /= 6
-    sum_df.iloc[0, 1:-2] /= 6
-    sum_df.iloc[-1, 1:-2] /= 6
-    sum_df.iloc[1:-2, 1:-2] /= 9
-
+    sharpe_df.to_csv(os.path.join('..', 'datasets', 'sharpe.csv'))
 
     # A mask is created to cover any cells where the excess Sharpe is 0, i.e., the strategy did not rebalance
     mask = sharpe_df == 0
@@ -118,10 +136,22 @@ def run(starting_cash=100_000, commission=0.005):
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.heatmap(sharpe_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", mask=mask)
     plt.tight_layout()
-    plt.savefig(os.path.join('images', 'heatmap.png'))
+    plt.savefig(os.path.join('..', 'images', 'sharpe.png'))
     plt.gcf().clear()
     plt.close()
 
+
+
+    sharpe_neighborhood_df.to_csv(os.path.join('..', 'datasets', 'neighborhood_sharpe'))
+    mask = sharpe_neighborhood_df == 0
+
+    # Plotting the heatmap
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.heatmap(sharpe_neighborhood_df, linewidths=0.1, ax=ax, annot=True, fmt='.3g', cmap="gray_r", mask=mask)
+    plt.tight_layout()
+    plt.savefig(os.path.join('..', 'images', 'neighborhood_sharpe.png'))
+    plt.gcf().clear()
+    plt.close()
 
 if __name__ == '__main__':
     run(starting_cash=100_000, commission=0.005)

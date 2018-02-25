@@ -91,7 +91,7 @@ longer than a portfolio with a lower Minkowski p-value.
 In order to pick which Minkowski p-value to use for the trigger function, I made a small script to loop through 
 different combinations of threshold and p-values. The results can be seen as a heatmap below:
 
-![Heatmap](images/heatmap.png)
+![Heatmap](images/sharpe.png)
 
 Each cell in the heatmap gives the excess Sharpe ratio, in basis points, of a rebalancing portfolio over the Sharpe
 ratio of the buy-and-hold-portfolio. Every rebalancing portfolio is constructed with a specific Minkowski p-value
@@ -100,4 +100,13 @@ than the initial purchase was made, as the threshold for rebalancing was never r
 represented as blank spaces in the heatmap.  
 In general, we find that the Sharpe ratio of a portfolio usually increases as the Minkowski p-value or threshold
 increases. However, at some point these parameters become too 'loose', and the portfolio never rebalances. 
-The overa
+The overall maximum over the searched grid occurs at p=1 and tolerance=0.19. However, this seems like an unwise
+choice of parameters since it is very near other cells that didn't trade at all. If we performed a backtest on a
+different dataset, that particular portfolio may not rebalance at all.
+In order to pick a more stable point of parameters, we calculate the neighborhood Sharpe ratios for each cell. The
+neighborhood Sharpe ratios are defined as the average excess Sharpe ratios of each cell and its neighbors. By
+computing this value, we find cells that have high excess Sharpe ratios, and also have neighbors with high Sharpe
+ratios. This gives us more comfort that the parameters picked are stable for different inputs. The heatmap for the
+neighborhood Sharpe ratios can be viewed below:
+
+![Neighborhood heatmap](images/neighborhood_sharpe.png]
