@@ -40,8 +40,8 @@ The main portion of the case study is found in `main.py`, and can be run by call
 ---
 ## General comments regarding the case
 ### Choice of distance function and  tolerance threshold
-I spent a lot of time considering how to decide what trigger function to use in determining whether the portfolio
-has to be rebalanced or not.
+My primary consideration was which trigger function to use in determining whether the portfolio has to be rebalanced 
+or not.
 
 In general, I approached the problem by considering the current portfolio allocation *c* and the target portfolio
 allocation *t* as being two vectors in 8-dimensional space and then defining some sort of distance function to measure
@@ -52,8 +52,9 @@ the Manhattan distance or Euclidian distance between these two points, i.e.,
 
 ![Euclidian distance](equations/euclidian.png)
 
-The reason for me using these two distance functions is because I am familiar with their use in regressions as penalty
-functions, where they are referred to as the L1 norm and L2 norm, respectively. I considered two scenarios:
+The reason I chose these two distance functions is because I am familiar with their use in regressions as penalty
+functions, where they are referred to as the L1 norm and L2 norm, respectively. To test how these functions might 
+behave for the portfolio rebalancing task, I considered two scenarios:
 1. We are underweight **EEM** by 2 percentage points, overweight **SHY** by 1 percentage point and overweight **VTI**
 by one percentage point
 2. We are underweight **EEM** by 2 percentage points and overweight **SHY** by 2 percentage points
@@ -80,7 +81,9 @@ from the origin. The unit circle was calculated for various Minkowski p values i
 
 For p = 2, we see a round circle as we would expect to see when visualizing the unit circle. That's because the 
 Euclidian metric is used to measure distances in Euclidian 2-d space.  
-For p = 1, the unit circle appears as a diamond inscribed in the p=2 circle. 
+For p = 1, the unit circle appears as a diamond inscribed in the p=2 circle. In this metric, we can consider the
+distance as being how many 'steps' away a certain point is, if we can only step directly to the left or right, or 
+up and down. It's called the Manhattan metric as it is reminiscent of how Manhattan is built on a block system.
 
 As p approaches zero, we get increasingly close to the Hamming distance function:
 
